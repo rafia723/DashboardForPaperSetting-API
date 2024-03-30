@@ -1,5 +1,5 @@
 const express = require("express");
-const { mysql, pool } = require("./database");
+const { pool } = require("./database");
 
 const courseRouter = express.Router();
 
@@ -44,6 +44,8 @@ courseRouter.post("/addCourse", (req, res) => {    //Datacell
     res.status(200).json({ message: "Course inserted successfully" });
   });
 });
+
+
 
 // EDIT endpoint
 courseRouter.put("/editCourse/:c_id", (req, res) => {    //Datacell
