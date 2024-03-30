@@ -95,17 +95,22 @@ AssignedCoursesRouter.put("/editRole/:c_id/:f_id", async (req, res) => {
   try {
     const c_id = req.params.c_id;
     const f_id = req.params.f_id;
-    if (!/^\d+$/.test(c_id) || !/^\d+$/.test(f_id)) {
-      return res.status(400).json({ error: "Invalid course or faculty ID" });
+    if (!/^\d+$/.test(c_id)) {
+      return res.status(400).json({ error: "Invalid course ID" });
     }
     const editStatusQuery = 'UPDATE Assigned_Course SET role = CASE WHEN f_id = ? THEN "Senior" ELSE "Normal" END WHERE c_id = ?';
-    const [results, fields] = await pool.query(editStatusQuery, [f_id, c_id]);
-    if (results.affectedRows === 0) {
-      return res.status(404).json({ error: "Assigned Course not found" });
-    }
-    res.status(200).json({ success: "Role updated successfully" });
+    pool.query(editStatusQuery, [f_id, c_id], (error, results) => {
+      if (error) {
+        console.error("Error updating Role:", error);
+        return res.status(500).json({ error: "Edit Role Request Error" });
+      }
+      if (results.affectedRows === 0) {
+        return res.status(404).json({ error: "Assigned Course not found" });
+      }
+      res.status(200).json({ success: "Role updated successfully" });
+    });
   } catch (error) {
-    console.error("Error updating role:", error);
+    console.error("Error updating Role:", error);
     res.status(500).json({ error: "Edit Role Request Error" });
   }
 });
