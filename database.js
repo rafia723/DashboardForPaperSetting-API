@@ -1,15 +1,11 @@
-const sql = require("mssql");
+const mysql = require("mysql");
 
 const config = {
-  user: "sa",
-  password: "rafia123",
-  server: "127.0.0.1",
-  database: "DPS",
-  options: {
-    encrypt: false,
-  },
+  user: "root",
+  host: "127.0.0.1",
+  database: "dps",
 };
 
-const pool = new sql.ConnectionPool(config);
+const pool = new mysql.createPool(config);
 
-module.exports = { sql, pool };
+module.exports = { mysql, pool };

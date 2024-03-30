@@ -1,178 +1,136 @@
 const express = require("express");
-const { sql, pool } = require("./database");
+const { mysql, pool } = require("./database");
 
 const courseRouter = express.Router();
-
-
-const getQuery = "SELECT * FROM Course";
-const getSingleRecordQuery = "SELECT * FROM Course WHERE c_id = @c_id";
-const postQuery = "INSERT INTO Course (c_code, c_title, cr_hours,status) VALUES ( @c_code, @c_title, @cr_hours,@status)";
-const editQuery = "UPDATE Course SET c_code = @c_code, c_title = @c_title, cr_hours = @cr_hours WHERE c_id = @c_id";
-const editStatusQuery = "UPDATE Course SET status = @status WHERE c_id = @c_id";
-const searchCourseQuery = "SELECT * FROM Course WHERE c_code LIKE @searchQuery OR c_title LIKE @searchQuery"; //Datacell
-const getQueryWithEnabledStatus = "SELECT * FROM Course where status='enabled'"; //HOD
-const searchCourseQueryWithEnabledStatus = "SELECT * FROM Course WHERE (c_code LIKE @searchQuery OR c_title LIKE @searchQuery) and status='enabled'"; //HOD
-
-// GET endpoint
-courseRouter.get("/getCourse",async (req, res) => {
-  try {
-    await pool.connect();
-    const result = await pool.request().query(getQuery);
-    res.json(result.recordset);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Get Request Error");
-  } finally {
-    pool.close();
-  }
+courseRouter.get("/getCourse", (req, res) => {
+  const getQuery = "SELECT * FROM Course";
+  pool.query(getQuery, (err, result) => {
+    if (err) {
+      console.error("Error retrieving courses:", err);
+      res.status(500).send("Get Request Error");
+      return;
+    }
+    res.json(result);
+  });
 });
 
-
-courseRouter.get("/getCourseWithEnabledStatus",async (req, res) => {
-  try {
-    await pool.connect();
-    const result = await pool.request().query(getQueryWithEnabledStatus);
-    res.json(result.recordset);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Get Request Error");
-  } finally {
-    pool.close();
-  }
+courseRouter.get("/getCourseWithEnabledStatus", (req, res) => {
+  const getQueryWithEnabledStatus = "SELECT * FROM Course where status='enabled'";
+  pool.query(getQueryWithEnabledStatus, (err, result) => {
+    if (err) {
+      // Handle database query error
+      console.error("Error retrieving courses with enabled status:", err);
+      res.status(500).send("Get Request Error");
+      return;
+    }
+    res.json(result);
+  });
 });
 
-// POST endpoint
-courseRouter.post("/addCourse", async (req, res) => {
-  try {
-    const { c_id, c_code, c_title, cr_hours } = req.body;
-    const status = "enabled";
-    console.log("Data received:", { c_id, c_code, c_title, cr_hours });
-    await pool.connect();
-    await pool
-      .request()
-      .input("c_code", sql.NVarChar(255), c_code)
-      .input("c_title", sql.NVarChar(255), c_title)
-      .input("cr_hours", sql.Int, cr_hours)
-      .input("status",sql.NVarChar(255),status)
-      .query(postQuery);
+courseRouter.post("/addCourse", (req, res) => {
+  const { c_code, c_title, cr_hours } = req.body;
+  const status = "enabled";
+  console.log("Data received:", { c_code, c_title, cr_hours });
+  // SQL query to insert a new course
+  const insertQuery = "INSERT INTO Course (c_code, c_title, cr_hours, status) VALUES (?, ?, ?, ?)";
+  pool.query(insertQuery, [c_code, c_title, cr_hours, status], (err) => {
+    if (err) {
+      console.error("Error inserting data:", err);
+      return res.status(500).json({ error: "Post Request Error" });
+    }
+    console.log("Course inserted successfully");
     res.status(200).json({ message: "Course inserted successfully" });
-  } catch (error) {
-    console.error("Error inserting data:", error);
-    res.status(500).json({ error: "Post Request Error" });
-  } finally {
-    pool.close();
-  }
+  });
 });
 
 // EDIT endpoint
-courseRouter.put("/editCourse/:c_id", async (req, res) => {
-  try {
-    const userId = req.params.c_id;
-    const { c_code, c_title, cr_hours } = req.body;
-    if (!/^\d+$/.test(userId)) {
-      return res.status(400).json({ error: "Invalid course ID" });
+courseRouter.put("/editCourse/:c_id", (req, res) => {
+  const userId = req.params.c_id;
+  const { c_code, c_title, cr_hours } = req.body;
+  // Validate course ID
+  if (!/^\d+$/.test(userId)) {
+    return res.status(400).json({ error: "Invalid course ID" });
+  }
+  // SQL query to update a course
+  const updateQuery = "UPDATE Course SET c_code = ?, c_title = ?, cr_hours = ? WHERE c_id = ?";
+  pool.query(updateQuery, [c_code, c_title, cr_hours, userId], (err, result) => {
+    if (err) {
+      console.error("Error updating course:", error);
+      return res.status(500).json({ error: "Edit Request Error" });
     }
-    await pool.connect();
-    const result = await pool
-      .request()
-      .input("c_id", sql.Int, userId)
-      .input("c_code", sql.NVarChar(255), c_code)
-      .input("c_title", sql.NVarChar(255), c_title)
-      .input("cr_hours", sql.Int, cr_hours)
-      .query(editQuery);
-    if (result.rowsAffected[0] === 0) {
+    if (result.affectedRows === 0) {
       return res.status(404).json({ error: "Course not found" });
     }
     res.status(200).json({ message: "Course updated successfully" });
-  } catch (error) {
-    console.error("Error updating user:", error);
-    res.status(500).json({ error: "Edit Request Error" });
-  } finally {
-    pool.close();
-  }
+  });
 });
+
 
 // EDIT STATUS endpoint
-courseRouter.put("/editCourseStatus/:c_id", async (req, res) => {
-  try {
-    const cId = req.params.c_id;
-    if (!/^\d+$/.test(cId)) {
-      return res.status(400).json({ error: "Invalid Course ID" });
+courseRouter.put("/editCourseStatus/:c_id", (req, res) => {
+  const cId = req.params.c_id;
+  if (!/^\d+$/.test(cId)) {
+    return res.status(400).json({ error: "Invalid Course ID" });
+  }
+  // SQL query to fetch the current status of the course
+  const getSingleRecordQuery = "SELECT * FROM Course WHERE c_id = ?";
+  pool.query(getSingleRecordQuery, [cId], (fetchError, fetchResult) => {
+    if (fetchError) {
+      console.error("Error fetching course status:", fetchError);
+      return res.status(500).json({ error: "Edit Status Request Error" });
     }
-    await pool.connect();
-    const fetchResult = await pool
-      .request()
-      .input("c_id", sql.Int, cId)
-      .query(getSingleRecordQuery);
-    if (fetchResult.rowsAffected[0] === 0) {
+    if (fetchResult.length === 0) {
       return res.status(404).json({ error: "Course not found" });
     }
-    const currentStatus = fetchResult.recordset[0].status;
-    let newStatus;
-    if (currentStatus === "enabled") {
-      newStatus = "disabled";
-    } else if (currentStatus === "disabled") {
-      newStatus = "enabled";
-    }
-    const updateResult = await pool
-      .request().input("c_id", sql.Int, cId).input("status", sql.NVarChar(255), newStatus).query(editStatusQuery);
-    if (updateResult.rowsAffected[0] === 0) {
-      return res.status(404).json({ error: "Course not found" });
-    }
-    res.status(200).json({ message: "Course status updated successfully", newStatus });
-  } catch (error) {
-    console.error("Error updating Course status:", error);
-    res.status(500).json({ error: "Edit Status Request Error" });
-  } finally {
-    if (pool) {
-      await pool.close();
-  }
-}});
-
-
-// SEARCH endpoint
-courseRouter.get("/searchCourseWithEnabledStatus", async (req, res) => {
-  try {
-    const searchQuery = req.query.search;
-    if (!searchQuery) {
-      return res.status(400).json({ error: "Missing search query parameter" });
-    }
-    await pool.connect();
-    const searchResult = await pool
-      .request()
-      .input("searchQuery", sql.NVarChar(255), `%${searchQuery}%`)
-      .query(searchCourseQueryWithEnabledStatus);
-    res.json(searchResult.recordset);
-  } catch (error) {
-    console.error("Error searching course:", error);
-    res.status(500).json({ error: "Search Request Error" });
-  } finally {
-    if(pool){
-    await pool.close();
-    }
-  }
+    const currentStatus = fetchResult[0].status;
+    const newStatus = (currentStatus === "enabled") ? "disabled" : "enabled";
+    // SQL query to update the status of the course
+    const updateStatusQuery = "UPDATE Course SET status = ? WHERE c_id = ?";
+    pool.query(updateStatusQuery, [newStatus, cId], (updateError, updateResult) => {
+      if (updateError) {
+        console.error("Error updating course status:", updateError);
+        return res.status(500).json({ error: "Edit Status Request Error" });
+      }
+      if (updateResult.affectedRows === 0) {
+        return res.status(404).json({ error: "Course not found" });
+      }
+      res.status(200).json({ message: "Course status updated successfully", newStatus });
+    });
+  });
 });
 
-courseRouter.get("/searchCourse", async (req, res) => {
-  try {
-    const searchQuery = req.query.search;
-    if (!searchQuery) {
-      return res.status(400).json({ error: "Missing search query parameter" });
-    }
-    await pool.connect();
-    const searchResult = await pool
-      .request()
-      .input("searchQuery", sql.NVarChar(255), `%${searchQuery}%`)
-      .query(searchCourseQuery);
-    res.json(searchResult.recordset);
-  } catch (error) {
-    console.error("Error searching course:", error);
-    res.status(500).json({ error: "Search Request Error" });
-  } finally {
-    if(pool){
-    await pool.close();
-    }
+// SEARCH endpoint
+courseRouter.get("/searchCourseWithEnabledStatus", (req, res) => {
+  const searchQuery = req.query.search;
+  if (!searchQuery) {
+    return res.status(400).json({ error: "Missing search query parameter" });
   }
+  // SQL query to search for courses with enabled status
+  const searchCourseQueryWithEnabledStatus = "SELECT * FROM Course WHERE (c_code LIKE ? OR c_title LIKE ?) and status='enabled'";
+  pool.query(searchCourseQueryWithEnabledStatus, [`%${searchQuery}%`, `%${searchQuery}%`], (err, searchResult) => {
+    if (err) {
+      console.error("Error searching course:", err);
+      return res.status(500).json({ error: "Search Request Error" });
+    }
+    res.json(searchResult);
+  });
+});
+
+// SEARCH endpoint
+courseRouter.get("/searchCourse", (req, res) => {
+  const searchQuery = req.query.search;
+  if (!searchQuery) {
+    return res.status(400).json({ error: "Missing search query parameter" });
+  }
+  // SQL query to search for courses
+  const searchCourseQuery = "SELECT * FROM Course WHERE c_code LIKE ? OR c_title LIKE ?";
+  pool.query(searchCourseQuery, [`%${searchQuery}%`, `%${searchQuery}%`], (err, searchResult) => {
+    if (err) {
+      console.error("Error searching course:", err);
+      return res.status(500).json({ error: "Search Request Error" });
+    }
+    res.json(searchResult);
+  });
 });
 
 module.exports = courseRouter;

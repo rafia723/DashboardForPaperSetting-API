@@ -42,7 +42,7 @@ facultyRouter.post("/loginFaculty", async (req, res) => {
     await pool.connect();
     const result = await pool.request()
       .input("username", sql.NVarChar(255), username)
-      .query(`SELECT f_id, password FROM faculty WHERE username = @username`);
+      .query(`SELECT * FROM faculty WHERE username = @username`);
 
     if (result.recordset.length === 0) {
       return res.status(401).json({ error: "Invalid username or password" });
