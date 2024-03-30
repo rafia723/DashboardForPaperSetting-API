@@ -20,32 +20,27 @@ facultyRouter.get("/getFaculty", (req, res) => {   //Datacell
   });
 });
 
-facultyRouter.post("/loginFaculty", async (req, res) => {
-  try {
-    const { username, password } = req.body;
+facultyRouter.post("/loginFaculty", (req, res) => {
+  const { username, password } = req.body;
 
-    const loginQuery = "SELECT * FROM faculty WHERE username = ?";
+  const loginQuery = "SELECT * FROM faculty WHERE username = ?";
 
-    pool.query(loginQuery, [username], async (error, results, fields) => {
-      if (error) {
-        console.error("Error during login:", error);
-        res.status(500).json({ error: "Login Error" });
-        return;
-      }
-      if (results.length === 0) {
-        return res.status(401).json({ error: "Invalid username or password" });
-      }
-      const { f_id, password: hashedPassword } = results[0];
-      const passwordMatch = await bcrypt.compare(password, hashedPassword);
-      if (!passwordMatch) {
-        return res.status(401).json({ error: "Invalid username or password" });
-      }
-      res.status(200).json({ message: 'Login successful', fid: f_id });
-    });
-  } catch (error) {
-    console.error("Error during login:", error);
-    res.status(500).json({ error: "Login Error" });
-  }
+  pool.query(loginQuery, [username], async (error, results, fields) => {
+    if (error) {
+      console.error("Error during login:", error);
+      res.status(500).json({ error: "Login Error" });
+      return;
+    }
+    if (results.length === 0) {
+      return res.status(401).json({ error: "Invalid username or password" });
+    }
+    const { f_id, password: hashedPassword } = results[0];
+    const passwordMatch = await bcrypt.compare(password, hashedPassword);
+    if (!passwordMatch) {
+      return res.status(401).json({ error: "Invalid username or password" });
+    }
+    res.status(200).json({ message: 'Login successful', fid: f_id });
+  });
 });
 
 facultyRouter.get("/getFacultyWithEnabledStatus", (req, res) => {
