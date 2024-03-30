@@ -4,7 +4,7 @@ const { pool } = require("./database");
 const courseRouter = express.Router();
 
 
-courseRouter.get("/getCourse", (req, res) => {   //Datacell
+courseRouter.get("/getCourse", (req, res) => {  
   const getQuery = "SELECT * FROM Course";
   pool.query(getQuery, (err, result) => {
     if (err) {
@@ -16,7 +16,7 @@ courseRouter.get("/getCourse", (req, res) => {   //Datacell
   });
 });
 
-courseRouter.get("/getCourseWithEnabledStatus", (req, res) => {  //HOD
+courseRouter.get("/getCourseWithEnabledStatus", (req, res) => {  
   const getQueryWithEnabledStatus = "SELECT * FROM Course where status='enabled'";
   pool.query(getQueryWithEnabledStatus, (err, result) => {
     if (err) {
@@ -29,7 +29,7 @@ courseRouter.get("/getCourseWithEnabledStatus", (req, res) => {  //HOD
   });
 });
 
-courseRouter.post("/addCourse", (req, res) => {    //Datacell
+courseRouter.post("/addCourse", (req, res) => {   
   const { c_code, c_title, cr_hours } = req.body;
   const status = "enabled";
   console.log("Data received:", { c_code, c_title, cr_hours });
@@ -48,7 +48,7 @@ courseRouter.post("/addCourse", (req, res) => {    //Datacell
 
 
 // EDIT endpoint
-courseRouter.put("/editCourse/:c_id", (req, res) => {    //Datacell
+courseRouter.put("/editCourse/:c_id", (req, res) => {    
   const userId = req.params.c_id;
   const { c_code, c_title, cr_hours } = req.body;
   // Validate course ID
@@ -71,7 +71,7 @@ courseRouter.put("/editCourse/:c_id", (req, res) => {    //Datacell
 
 
 // EDIT STATUS endpoint
-courseRouter.put("/editCourseStatus/:c_id", (req, res) => {     //Datacell
+courseRouter.put("/editCourseStatus/:c_id", (req, res) => {     
   const cId = req.params.c_id;
   if (!/^\d+$/.test(cId)) {
     return res.status(400).json({ error: "Invalid Course ID" });
@@ -104,7 +104,7 @@ courseRouter.put("/editCourseStatus/:c_id", (req, res) => {     //Datacell
 });
 
 // SEARCH endpoint
-courseRouter.get("/searchCourseWithEnabledStatus", (req, res) => {   //HOD
+courseRouter.get("/searchCourseWithEnabledStatus", (req, res) => {   
   const searchQuery = req.query.search;
   if (!searchQuery) {
     return res.status(400).json({ error: "Missing search query parameter" });
@@ -121,7 +121,7 @@ courseRouter.get("/searchCourseWithEnabledStatus", (req, res) => {   //HOD
 });
 
 // SEARCH endpoint
-courseRouter.get("/searchCourse", (req, res) => {   //Datacell
+courseRouter.get("/searchCourse", (req, res) => {   
   const searchQuery = req.query.search;
   if (!searchQuery) {
     return res.status(400).json({ error: "Missing search query parameter" });

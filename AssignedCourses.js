@@ -92,7 +92,6 @@ AssignedCoursesRouter.delete("/deleteAssignedCourse/:ac_id", (req, res) => {
 
 // EDIT STATUS endpoint
 AssignedCoursesRouter.put("/editRole/:c_id/:f_id", async (req, res) => {
-  try {
     const c_id = req.params.c_id;
     const f_id = req.params.f_id;
     if (!/^\d+$/.test(c_id)) {
@@ -109,10 +108,6 @@ AssignedCoursesRouter.put("/editRole/:c_id/:f_id", async (req, res) => {
       }
       res.status(200).json({ success: "Role updated successfully" });
     });
-  } catch (error) {
-    console.error("Error updating Role:", error);
-    res.status(500).json({ error: "Edit Role Request Error" });
-  }
 });
 
 module.exports = AssignedCoursesRouter;
