@@ -48,7 +48,6 @@ facultyRouter.post("/loginFaculty", async (req, res) => {
   }
 });
 
-
 facultyRouter.get("/getFacultyWithEnabledStatus", (req, res) => {
   const getQueryWithEnabledStatus = "SELECT * FROM Faculty where status='enabled'";
 
@@ -68,9 +67,7 @@ facultyRouter.post("/addFaculty", async (req, res) => {
   const { f_name, username, password } = req.body;
   const status = "enabled";
   console.log("Data received:", { f_name, username, password, status });
-
   const hashedPassword = await bcrypt.hash(password, saltRounds);
-
   const postQuery = "INSERT INTO Faculty (f_name, username, password, status) VALUES (?, ?, ?, ?)";
   const inserts = [f_name, username, hashedPassword, status];
 
@@ -161,9 +158,6 @@ facultyRouter.get("/searchFaculty", (req, res) => {
     res.json(searchResult);
   });
 });
-
-
-
 // SEARCH endpoint
 facultyRouter.get("/searchFacultyWithEnabledStatus", (req, res) => {
   const searchQuery = req.query.search;
@@ -179,21 +173,6 @@ facultyRouter.get("/searchFacultyWithEnabledStatus", (req, res) => {
     }
     res.json(searchResult);
   });
-});
-
-
-// GET endpoint
-facultyRouter.get("/getFacultyNames", async (req, res) => {
-  try {
-    await pool.connect();
-    const result = await pool.request().query(getFacultyNamesQuery);
-    res.json(result.recordset);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Get Request Error");
-  } finally {
-   await pool.close();
-  }
 });
 
 module.exports = facultyRouter;
