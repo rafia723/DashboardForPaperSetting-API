@@ -70,7 +70,7 @@ AssignedCoursesRouter.post("/addAssignedCourse", (req, res) => {
   });
 });
 
-// DELETE endpoint
+//DELETE endpoint
 AssignedCoursesRouter.delete("/deleteAssignedCourse/:ac_id", (req, res) => {
   const ac_id = req.params.ac_id;
   if (!/^\d+$/.test(ac_id)) {
@@ -109,5 +109,57 @@ AssignedCoursesRouter.put("/editRole/:c_id/:f_id", async (req, res) => {
       res.status(200).json({ success: "Role updated successfully" });
     });
 });
+
+
+AssignedCoursesRouter.get("/getUnassignedCourses/:f_id", async (req, res) => {
+  try {
+    const userId = req.params.f_id;
+    if (!/^\d+$/.test(userId)) {
+      return res.status(400).json({ error: "Invalid faculty ID" });
+    }
+    const getUnAssignedCoursesQuery =
+      "SELECT c.* FROM course c LEFT JOIN assigned_course ac ON c.c_id = ac.c_id AND ac.f_id = ? WHERE ac.ac_id IS NULL;";
+    pool.query(getUnAssignedCoursesQuery, [userId], (err, result) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Query error" });
+      }
+      if (result.length === 0) {
+        return res
+          .status(404)
+          .json({ error: "Data not found for the given ID" });
+      }
+      res.json(result);
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Get Request Error" });
+  }
+});
+
+AssignedCoursesRouter.post("/assignCourse/:c_id/:f_id", (req, res) => {
+  const c_id = req.params.c_id;
+  if (!/^\d+$/.test(c_id)) {
+    return res.status(400).json({ error: "Invalid course ID" });
+  }
+  const f_id = req.params.f_id;
+  if (!/^\d+$/.test(f_id)) {
+    return res.status(400).json({ error: "Invalid faculty ID" });
+  }
+  const role = "junior";
+  const session = 1;
+  const query =
+    "INSERT INTO Assigned_Course (c_id, f_id, role, s_id) VALUES (?, ?, ?, ?)";
+  const values = [c_id, f_id, role, session];
+  pool.query(query, values, (err) => {
+    if (err) {
+      console.error("Error executing the query:", err);
+      res.status(500).json({ error: "Internal Server Error" });
+      return;
+    }
+    res.status(200).json({ message: "Course assigned successfully" });
+  });
+});
+
 
 module.exports = AssignedCoursesRouter;

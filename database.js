@@ -8,4 +8,4 @@ const config = {
 
 const pool = new mysql.createPool(config);
 
-module.exports = { mysql, pool };
+module.exports = { pool };
