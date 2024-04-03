@@ -29,6 +29,21 @@ courseRouter.get("/getCourseWithEnabledStatus", (req, res) => {
   });
 });
 
+courseRouter.get("/getCoursesofSeniorTeacher", (req, res) => {  
+  const getQueryWithSeniorRole = `SELECT DISTINCT c.c_title,c.c_code,clo.c_id,ac.role FROM CLO clo JOIN assigned_course ac
+  ON ac.c_id=clo.c_id JOIN course c ON ac.c_id=c.c_id WHERE ac.role="Senior" AND c.status="enabled";`
+  pool.query(getQueryWithSeniorRole, (err, result) => {
+    if (err) {
+      // Handle database query error
+      console.error("Error retrieving courses with senior role:", err);
+      res.status(500).send("Get Request Error");
+      return;
+    }
+    res.json(result);
+  });
+});
+
+
 courseRouter.post("/addCourse", (req, res) => {   
   const { c_code, c_title, cr_hours } = req.body;
   const status = "enabled";
