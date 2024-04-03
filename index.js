@@ -3,6 +3,7 @@ const facultyRoutes = require("./Faculty");
 const courseRoutes = require("./Course");
 const paperRoutes = require("./Paper");
 const AssignedCoursesRoutes = require("./AssignedCourses");
+const CloRouter = require("./Clo");
 
 const app = express();
 const port = 3000;
@@ -14,6 +15,7 @@ app.use("/Faculty", facultyRoutes);
 app.use("/Course", courseRoutes);
 app.use("/Paper", paperRoutes);
 app.use("/AssignedCourses", AssignedCoursesRoutes);
+app.use("/Clo", CloRouter);
 
 
 app.use((req, res, next) => {

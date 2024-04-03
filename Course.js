@@ -59,7 +59,7 @@ courseRouter.put("/editCourse/:c_id", (req, res) => {
   const updateQuery = "UPDATE Course SET c_code = ?, c_title = ?, cr_hours = ? WHERE c_id = ?";
   pool.query(updateQuery, [c_code, c_title, cr_hours, userId], (err, result) => {
     if (err) {
-      console.error("Error updating course:", error);
+      console.error("Error updating course:", err);
       return res.status(500).json({ error: "Edit Request Error" });
     }
     if (result.affectedRows === 0) {
