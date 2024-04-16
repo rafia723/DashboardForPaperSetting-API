@@ -35,10 +35,10 @@ TopicRouter.post("/addTopic", async (req, res) => {
 
   TopicRouter.put("/editTopic/:t_id", (req, res) => {    
     const tId = req.params.t_id;
-    const { t_text,c_id } = req.body;
+    const { t_name,c_id } = req.body;
     // SQL query to update a course
     const updateQuery = "UPDATE Topic SET t_name = ?, c_id = ? where t_id = ?";
-    const updates = [t_text, c_id, tId]; 
+    const updates = [t_name, c_id, tId]; 
     pool.query(updateQuery, updates, (err, result) => { 
         if (err) {
             console.error("Error updating topic:", err); 
