@@ -38,20 +38,36 @@ Clo_Topic_MappingRouter.get("/getClosMappedWithTopic/:t_id", (req, res) => {
   });
 });
 
-Clo_Topic_MappingRouter.delete("/deleteMapping/:t_id/:clo_id", (req, res) => {
-  const t_id = req.params.t_id;
-  const clo_id = req.params.clo_id;
+// Clo_Topic_MappingRouter.delete("/deleteMapping/:t_id/:clo_id", (req, res) => {
+//   const t_id = req.params.t_id;
+//   const clo_id = req.params.clo_id;
 
-  const deleteQuery = "DELETE FROM Clo_Topic_Mapping WHERE t_id = ? AND clo_id = ?";
-  pool.query(deleteQuery, [t_id, clo_id], (error, result) => {
-    if (error) {
-      console.error("Error deleting CLO mapping:", error);
-      return res.status(500).json({ error: "Delete Request Error" });
-    }
-    res.status(200).json({ message: "CLO mapping deleted successfully" });
-  });
-});
+//   const deleteQuery = "DELETE FROM Clo_Topic_Mapping WHERE t_id = ? AND clo_id = ?";
+//   pool.query(deleteQuery, [t_id, clo_id], (error, result) => {
+//     if (error) {
+//       console.error("Error deleting CLO mapping:", error);
+//       return res.status(500).json({ error: "Delete Request Error" });
+//     }
+//     res.status(200).json({ message: "CLO mapping deleted successfully" });
+//   });
+// });
 
+
+// Clo_Topic_MappingRouter.post("/addSingleMapping", async (req, res) => {
+//   const { clo_id, t_id } = req.body;
+//   console.log("Data received:", { clo_id, t_id });
+
+//   const insertSingleMappingQuery = "INSERT INTO Clo_Topic_Mapping (clo_id,t_id) VALUES (?, ?)";
+//   const inserts = [clo_id, t_id];
+//     pool.query(insertSingleMappingQuery, inserts, (error) => {
+//       if (error) {
+
+//         console.error("Error inserting data:", error);
+//         return res.status(500).json({ error: "Post Request Error" });
+//       }
+//     });
+//   res.status(200).json({ message: "Data inserted successfully" });
+// });
 
 
 
