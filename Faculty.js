@@ -34,12 +34,12 @@ facultyRouter.post("/loginFaculty", (req, res) => {
     if (results.length === 0) {
       return res.status(401).json({ error: "Invalid username or password" });
     }
-    const { f_id, password: hashedPassword } = results[0];
+    const { f_id,f_name, password: hashedPassword } = results[0];
     const passwordMatch = await bcrypt.compare(password, hashedPassword);
     if (!passwordMatch) {
       return res.status(401).json({ error: "Invalid username or password" });
     }
-    res.status(200).json({ message: 'Login successful', fid: f_id });
+    res.status(200).json({ message: 'Login successful', fid:f_id ,fname:f_name});
   });
 });
 

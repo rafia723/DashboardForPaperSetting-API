@@ -46,11 +46,10 @@ CloRouter.post("/addClo", async (req, res) => {
 
   CloRouter.put("/editClo/:clo_id", (req, res) => {    
     const userId = req.params.clo_id;
-    const status = "disapproved";
     const { clo_text,c_id } = req.body;
     // SQL query to update a course
-    const updateQuery = "UPDATE clo SET clo_text = ?, c_id = ?, status = ? where clo_id = ?";
-    const updates = [clo_text, c_id, status, userId]; // changed userId to clo_id
+    const updateQuery = "UPDATE clo SET clo_text = ?, c_id = ? where clo_id = ?";
+    const updates = [clo_text, c_id, userId]; // changed userId to clo_id
     pool.query(updateQuery, updates, (err, result) => { // removed the array brackets around updates
         if (err) {
             console.error("Error updating clo:", err); // corrected the error variable name
