@@ -77,14 +77,14 @@ facultyRouter.post("/addFaculty", async (req, res) => {
 
 // EDIT endpoint
 facultyRouter.put("/editFaculty/:f_id", async (req, res) => {
-  const userId = req.params.f_id;
+  const fId = req.params.f_id;
   const { f_name, username, password } = req.body;
   const hashedPassword = await bcrypt.hash(password, saltRounds);
-  if (!/^\d+$/.test(userId)) {
+  if (!/^\d+$/.test(fId)) {
     return res.status(400).json({ error: "Invalid faculty ID" });
   }
   const updateQuery = "UPDATE Faculty SET f_name = ?, username = ?, password = ? WHERE f_id = ?";
-  const inserts = [f_name, username, hashedPassword, userId];
+  const inserts = [f_name, username, hashedPassword, fId];
   pool.query(updateQuery, inserts, (error, results) => {
     if (error) {
       console.error("Error updating faculty:", error);
@@ -102,13 +102,13 @@ facultyRouter.put("/editFaculty/:f_id", async (req, res) => {
 
 // EDIT STATUS endpoint
 facultyRouter.put("/editFacultyStatus/:f_id", async (req, res) => {
-  const userId = req.params.f_id;
-  if (!/^\d+$/.test(userId)) {
+  const fId = req.params.f_id;
+  if (!/^\d+$/.test(fId)) {
     return res.status(400).json({ error: "Invalid faculty ID" });
   }
   // Fetch the current status of the faculty
   const getSingleRecordQuery = "SELECT * FROM Faculty WHERE f_id = ?";
-  pool.query(getSingleRecordQuery, userId, async (error, fetchResult) => {
+  pool.query(getSingleRecordQuery, fId, async (error, fetchResult) => {
     if (error) {
       console.error("Error fetching faculty status:", error);
       return res.status(500).json({ error: "Edit Status Request Error" });
@@ -125,7 +125,7 @@ facultyRouter.put("/editFacultyStatus/:f_id", async (req, res) => {
     }
     // Update the status of the faculty
     const updateStatusQuery = "UPDATE Faculty SET status = ? WHERE f_id = ?";
-    pool.query(updateStatusQuery, [newStatus, userId], (updateError, updateResult) => {
+    pool.query(updateStatusQuery, [newStatus, fId], (updateError, updateResult) => {
       if (updateError) {
         console.error("Error updating faculty status:", updateError);
         return res.status(500).json({ error: "Edit Status Request Error" });

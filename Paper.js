@@ -90,4 +90,43 @@ paperRouter.get('/SearchUploadedPapers', async (req, res) => {
   }
 });
 
+
+paperRouter.get('/getTeachersNamebyCourseId/:c_id', async (req, res) => {
+  
+  const  cid  = req.params.c_id;
+  const query = "SELECT distinct f_name FROM faculty f JOIN assigned_course ac ON f.f_id=ac.f_id WHERE c_id=?";
+  
+    pool.query(query , [cid],(err, result) => {
+      if (err) {
+        console.error("Error retrieving Teachers by course", err);
+        res.status(500).send("Get Request Error");
+        return;
+      }
+      res.json(result);
+    });
+  });
+
+  paperRouter.get('/getPaperStatus/:c_id', async (req, res) => {   //It provides array of result thats how we can access 1 value
+    const cid = req.params.c_id;
+    const query = "SELECT STATUS FROM paper WHERE c_id=?";
+      
+    pool.query(query , [cid], (err, result) => {
+      if (err) {
+        console.error("Error retrieving Status", err);
+        res.status(500).send("Get Request Error");
+        return;
+      }
+      // Check if there is a result
+      if (result.length > 0) {
+        // Extract the status value from the first (and only) result
+        const status = result[0].STATUS;
+        res.json(status);
+      } else {
+        res.status(404).send("No paper status found for the provided c_id.");
+      }
+    });
+  });
+
+  
+
 module.exports = paperRouter;

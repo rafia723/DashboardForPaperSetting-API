@@ -16,7 +16,7 @@ SubTopicRouter.get("/getSubTopic/:t_id", (req, res) => {
     res.json(result);
   });
 });
-
++
 SubTopicRouter.post("/addSubTopic", async (req, res) => {
     const { st_name,t_id } = req.body;
     console.log("Data received:", { st_name, t_id });

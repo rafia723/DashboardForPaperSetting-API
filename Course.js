@@ -64,15 +64,15 @@ courseRouter.post("/addCourse", (req, res) => {
 
 // EDIT endpoint
 courseRouter.put("/editCourse/:c_id", (req, res) => {    
-  const userId = req.params.c_id;
+  const cid = req.params.c_id;
   const { c_code, c_title, cr_hours } = req.body;
   // Validate course ID
-  if (!/^\d+$/.test(userId)) {
+  if (!/^\d+$/.test(cid)) {
     return res.status(400).json({ error: "Invalid course ID" });
   }
   // SQL query to update a course
   const updateQuery = "UPDATE Course SET c_code = ?, c_title = ?, cr_hours = ? WHERE c_id = ?";
-  pool.query(updateQuery, [c_code, c_title, cr_hours, userId], (err, result) => {
+  pool.query(updateQuery, [c_code, c_title, cr_hours, cid], (err, result) => {
     if (err) {
       console.error("Error updating course:", err);
       return res.status(500).json({ error: "Edit Request Error" });
