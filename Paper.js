@@ -106,11 +106,12 @@ paperRouter.get('/getTeachersNamebyCourseId/:c_id', async (req, res) => {
     });
   });
 
-  paperRouter.get('/getPaperStatus/:c_id', async (req, res) => {   //It provides array of result thats how we can access 1 value
+  paperRouter.get('/getPaperStatus/:c_id/:s_id', async (req, res) => {   //It provides array of result thats how we can access 1 value
     const cid = req.params.c_id;
-    const query = "SELECT STATUS FROM paper WHERE c_id=?";
-      
-    pool.query(query , [cid], (err, result) => {
+    const sid = req.params.s_id;
+    const query = "SELECT STATUS FROM paper WHERE c_id=? and s_id=?";
+    const values = [cid, sid];
+    pool.query(query , values, (err, result) => {
       if (err) {
         console.error("Error retrieving Status", err);
         res.status(500).send("Get Request Error");
@@ -126,6 +127,113 @@ paperRouter.get('/getTeachersNamebyCourseId/:c_id', async (req, res) => {
       }
     });
   });
+
+
+  
+
+  paperRouter.post("/addPaperHeaderMids", async (req, res) => {
+    const { duration, degree, t_marks, term, year, exam_date, session, NoOfQuestions, c_id, s_id } = req.body;
+    const status = "pending";
+  
+    // Check if the term is 'Mid'
+    if (term.toLowerCase()!=='mid'|| session.toLowerCase()!=='spring') {
+      return res.status(400).json({ error: "You can only create spring Mid term exams right now" });
+    }
+    // Check if the term Mid and no other mid term is added for the same subject and same session
+    const checkTermAndSessionQuery = "SELECT * FROM paper WHERE c_id = ? AND s_id = ? AND term = 'Mid' and session='Spring'";
+    pool.query(checkTermAndSessionQuery, [c_id, s_id], (err, result) => {
+      if (err) {
+        console.error("Error checking term and session:", err);
+        return res.status(500).json({ error: "Internal Server Error" });
+      }
+      if (result.length > 0) {
+        // Term already exists for the same cid and sid
+        return res.status(409).json({ error: `Term '${term}' and Session '${session}' already exists for this course and session` });
+      } else {
+        // No record found for the term, proceed with insertion
+        insertPaperHeader();
+      }
+    });
+ 
+  
+    // Function to insert paper header
+    function insertPaperHeader() {
+      const insertPaperHeaderQuery = "INSERT INTO paper (duration, degree, t_marks, term, year, exam_date, session, NoOfQuestions, c_id, s_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      const inserts = [duration, degree, t_marks, term, year, exam_date, session, NoOfQuestions, c_id, s_id, status];
+      pool.query(insertPaperHeaderQuery, inserts, (error) => {
+        if (error) {
+          console.error("Error inserting data:", error);
+          return res.status(500).json({ error: "Internal Server Error" });
+        }
+        res.status(200).json({ message: "Paper Header inserted successfully" });
+      });
+    }
+  });
+
+
+  // paperRouter.post("/addPaperHeaderMids", async (req, res) => {
+  //   const { duration, degree, t_marks, term, year, exam_date, session, NoOfQuestions, c_id, s_id } = req.body;
+  //   const status = "pending";
+  
+  //   // Check if the term is 'Mid' and session is 'Spring'
+  //   if (term.toLowerCase() !== 'mid' || session.toLowerCase() !== 'spring') {
+  //     return res.status(400).json({ error: "You can only create spring Mid term exams right now" });
+  //   }
+  
+  //   try {
+  //     // Check if the term Mid and no other mid term is added for the same subject and same session
+  //     const checkTermAndSessionQuery = "SELECT * FROM paper WHERE c_id = ? AND s_id = ? AND term = 'Mid' and session='Spring'";
+  //     const [result] = await pool.promise().query(checkTermAndSessionQuery, [c_id, s_id]);
+  
+  //     if (result.length > 0) {
+  //       // Term already exists for the same cid and sid
+  //       return res.status(409).json({ error: `Term '${term}' and Session '${session}' already exists for this course and session` });
+  //     }
+  
+  //     // No record found for the term, proceed with insertion
+  //     const insertPaperHeaderQuery = "INSERT INTO paper (duration, degree, t_marks, term, year, exam_date, session, NoOfQuestions, c_id, s_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+  //     const inserts = [duration, degree, t_marks, term, year, exam_date, session, NoOfQuestions, c_id, s_id, status];
+  //     await pool.promise().query(insertPaperHeaderQuery, inserts);
+  
+  //     res.status(200).json({ message: "Paper Header inserted successfully" });
+  
+  //   } catch (error) {
+  //     console.error("Error processing request:", error);
+  //     res.status(500).json({ error: "Internal Server Error" });
+  //   }
+  // });
+
+
+
+  paperRouter.get('/getPaperHeader/:c_id/:s_id', async (req, res) => {
+    const cid = req.params.c_id;
+    const sid = req.params.s_id;
+    const query = "SELECT * FROM paper WHERE c_id=? and s_id=?";
+    const values = [cid, sid];
+    
+    pool.query(query, values, (err, result) => {
+      if (err) {
+        console.error("Error retrieving status:", err);
+        res.status(500).send("Get Request Error");
+        return;
+      }
+      res.status(200).json(result); // Send the result as a JSON response
+    });
+  });
+
+
+paperRouter.get('/getSession', async (req, res) => {
+ 
+  const query = "SELECT * from Session";
+  pool.query(query, (error, results) => {
+    if (error) {
+      console.error('Error fetching session :', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+    res.status(200).json(results);
+  });
+});
+
 
   
 

@@ -1,12 +1,13 @@
 const express = require("express");
-const facultyRoutes = require("./Faculty");
-const courseRoutes = require("./Course");
-const paperRoutes = require("./Paper");
-const AssignedCoursesRoutes = require("./AssignedCourses");
+const facultyRouter = require("./Faculty");
+const courseRouter = require("./Course");
+const paperRouter = require("./Paper");
+const AssignedCoursesRouter = require("./AssignedCourses");
 const CloRouter = require("./Clo");
 const TopicRouter = require("./Topic");
 const Clo_Topic_MappingRouter = require("./Clo_Topic_Mapping");
 const SubTopicRouter = require("./SubTopic");
+const questionRouter = require("./Question");
 
 const app = express();
 const port = 3000;
@@ -14,14 +15,15 @@ const port = 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/Faculty", facultyRoutes);
-app.use("/Course", courseRoutes);
-app.use("/Paper", paperRoutes);
-app.use("/AssignedCourses", AssignedCoursesRoutes);
+app.use("/Faculty", facultyRouter);
+app.use("/Course", courseRouter);
+app.use("/Paper", paperRouter);
+app.use("/AssignedCourses", AssignedCoursesRouter);
 app.use("/Clo", CloRouter);
 app.use("/Topic", TopicRouter);
 app.use("/Clo_Topic_Mapping", Clo_Topic_MappingRouter);
 app.use("/SubTopic", SubTopicRouter);
+app.use("/Question", questionRouter);
 
 app.use((req, res, next) => {
     console.log(`Incoming Request: ${req.method} ${req.url}`);
