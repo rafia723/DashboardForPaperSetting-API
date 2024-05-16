@@ -1,4 +1,7 @@
 const express = require("express");
+
+
+
 const facultyRouter = require("./Faculty");
 const courseRouter = require("./Course");
 const paperRouter = require("./Paper");
@@ -8,6 +11,7 @@ const TopicRouter = require("./Topic");
 const Clo_Topic_MappingRouter = require("./Clo_Topic_Mapping");
 const SubTopicRouter = require("./SubTopic");
 const questionRouter = require("./Question");
+
 
 const app = express();
 const port = 3000;
@@ -24,6 +28,7 @@ app.use("/Topic", TopicRouter);
 app.use("/Clo_Topic_Mapping", Clo_Topic_MappingRouter);
 app.use("/SubTopic", SubTopicRouter);
 app.use("/Question", questionRouter);
+app.use('/Images', express.static('Images'));
 
 app.use((req, res, next) => {
     console.log(`Incoming Request: ${req.method} ${req.url}`);
