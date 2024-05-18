@@ -72,6 +72,8 @@ questionRouter.get("/getQuestion/:p_id", (req, res) => {
 });
 
 
+
+
 // questionRouter.get("/getQuestion/:p_id", (req, res) => {
 //     const paperId = req.params.p_id;
 //     const getQuery = "SELECT * FROM Question WHERE p_id=?";

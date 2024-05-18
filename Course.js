@@ -75,6 +75,9 @@ courseRouter.put("/editCourse/:c_id", (req, res) => {
   pool.query(updateQuery, [c_code, c_title, cr_hours, cid], (err, result) => {
     if (err) {
       console.error("Error updating course:", err);
+      if (err.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ error: "Duplicate entry detected" });
+      }
       return res.status(500).json({ error: "Edit Request Error" });
     }
     if (result.affectedRows === 0) {

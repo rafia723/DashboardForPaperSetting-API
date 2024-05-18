@@ -88,6 +88,10 @@ facultyRouter.put("/editFaculty/:f_id", async (req, res) => {
   pool.query(updateQuery, inserts, (error, results) => {
     if (error) {
       console.error("Error updating faculty:", error);
+      
+      if (error.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ error: "Duplicate entry detected" });
+      }
       return res.status(500).json({ error: "Edit Request Error" });
     }
 
