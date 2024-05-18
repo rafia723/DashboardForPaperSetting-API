@@ -28,14 +28,15 @@ questionRouter.post("/addQuestion", upload, (req, res) => {
      q_imageUrl =imagePath;
     }
     const {q_text,q_marks, q_difficulty, q_status, t_id, p_id, f_id } = req.body;
-    const insertQuery = "INSERT INTO Question ( q_text,q_image, q_marks, q_difficulty, q_status, t_id, p_id, f_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-    
-    
+
+const insertQuery = "INSERT INTO Question ( q_text,q_image, q_marks, q_difficulty, q_status, t_id, p_id, f_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 pool.query(insertQuery, [q_text,q_imageUrl, q_marks, q_difficulty, q_status, t_id, p_id, f_id], (err) => {
     if (err) {
         console.error("Error inserting data:", err);
         // If there's an error, delete the uploaded file
-        fs.unlinkSync(imagePath);
+        if(imagePath){
+            fs.unlinkSync(imagePath);
+        }
         return res.status(500).json({ error: "Post Request Error" });
     }
     res.status(200).json({ message: "Question inserted successfully" });
@@ -71,6 +72,35 @@ questionRouter.get("/getQuestion/:p_id", (req, res) => {
     });
 });
 
+// EDIT STATUS endpoint
+questionRouter.put("/editQuestionStatus/:q_id", (req, res) => {     
+    const qId = req.params.q_id;
+    
+    // SQL query to fetch the current status of the question
+    const getSingleRecordQuery = "SELECT q_status FROM question WHERE q_id = ?";
+    pool.query(getSingleRecordQuery, [qId], (fetchError, fetchResult) => {
+      if (fetchError) {
+        console.error("Error fetching question status:", fetchError);
+        return res.status(500).json({ error: "Error fetching question status" });
+      }
+      if (fetchResult.length === 0) {
+        return res.status(404).json({ error: "Question not found" });
+      }
+  
+      const currentStatus = fetchResult[0].q_status;
+      const newStatus = (currentStatus === "pending") ? "uploaded" : "pending";
+      
+      // SQL query to update the status of the question
+      const updateStatusQuery = "UPDATE question SET q_status = ? WHERE q_id = ?";
+      pool.query(updateStatusQuery, [newStatus, qId], (updateError) => {
+        if (updateError) {
+          console.error("Error updating question status:", updateError);
+          return res.status(500).json({ error: "Error updating question status" });
+        }
+        res.status(200).json({ message: "Question status updated successfully", newStatus });
+      });
+    });
+  });
 
 
 
