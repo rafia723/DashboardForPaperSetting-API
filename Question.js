@@ -138,4 +138,30 @@ questionRouter.put("/editQuestionStatus/:q_id", (req, res) => {
 // });
 
 
+questionRouter.get("/getQuestionsWithUploadedStatus/:p_id", (req, res) => {
+    const paperId = req.params.p_id;
+    const getQuery = "SELECT * FROM Question WHERE p_id=? and q_status='uploaded'";
+    
+    pool.query(getQuery, [paperId], (err, results) => {
+        if (err) {
+            console.error("Error retrieving questions:", err);
+            return res.status(500).send("Get Request Error");
+        }
+        if (results.length === 0) {
+            return res.status(404).json({ error: "Data not found for the given ID" });
+        }
+
+        const baseUrl = getBaseUrl(req);
+        const questionsWithFullImageUrl = results.map(question => {
+            if (question.q_image) {
+                question.q_image = baseUrl + question.q_image;
+            }
+            return question;
+        });
+
+        res.json(questionsWithFullImageUrl);
+    });
+});
+
+
 module.exports = questionRouter;

@@ -62,7 +62,7 @@ paperRouter.get('/SearchApprovedPapers', async (req, res) => {
 
 paperRouter.get('/getUploadedPapers', async (req, res) => {
  
-  const query = "SELECT DISTINCT c.c_title,c.c_code, p.status FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'Uploaded'";
+  const query = "SELECT DISTINCT c.c_id,c.c_title,c.c_code, p.status FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'Uploaded'";
   pool.query(query, (error, results) => {
     if (error) {
       console.error('Error fetching uploaded papers:', error);
@@ -222,17 +222,7 @@ paperRouter.get('/getTeachersNamebyCourseId/:c_id', async (req, res) => {
   });
 
 
-paperRouter.get('/getSession', async (req, res) => {
- 
-  const query = "SELECT * from Session";
-  pool.query(query, (error, results) => {
-    if (error) {
-      console.error('Error fetching session :', error);
-      return res.status(500).json({ error: 'Internal Server Error' });
-    }
-    res.status(200).json(results);
-  });
-});
+
 
 
   
