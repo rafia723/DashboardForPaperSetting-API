@@ -13,6 +13,7 @@ const SubTopicRouter = require("./SubTopic");
 const questionRouter = require("./Question");
 const sessionRouter = require("./Session");
 const feedbackRouter = require("./Feedback");
+const TopicTaughtRouter = require("./TopicTaught");
 
 
 const app = express();
@@ -33,6 +34,7 @@ app.use("/Question", questionRouter);
 app.use('/Images', express.static('Images'));
 app.use("/Session", sessionRouter);
 app.use("/Feedback", feedbackRouter);
+app.use("/TopicTaught", TopicTaughtRouter);
 
 
 app.use((req, res, next) => {

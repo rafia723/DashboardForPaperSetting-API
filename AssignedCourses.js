@@ -37,7 +37,7 @@ AssignedCoursesRouter.get("/getAssignedTo/:c_id", (req, res) => {
   }
   // SQL query to retrieve faculty assigned to a course by ID
   const getAssignedToQuery = `
-    SELECT ac.*, f.f_name, c.c_title , c.c_code
+    SELECT ac.*, f.f_name, f.f_id,c.c_title , c.c_code
     FROM faculty f
     JOIN Assigned_Course ac ON f.f_id = ac.f_id
     JOIN course c ON ac.c_id = c.c_id
