@@ -60,6 +60,36 @@ paperRouter.get('/SearchApprovedPapers', async (req, res) => {
     }
 });
 
+paperRouter.get('/getApprovedAndPrintedPapers', async (req, res) => {
+ 
+  const query = "SELECT DISTINCT c.c_title,c.c_code, p.status FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'Approved'";
+  pool.query(query, (error, results) => {
+    if (error) {
+      console.error('Error fetching approved or printed papers:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+    res.status(200).json(results);
+  });
+});
+
+paperRouter.get('/SearchApprovedAndPrintedPapers', async (req, res) => {
+
+  const { courseTitle } = req.query;
+  const query = "SELECT DISTINCT c.c_title, c.c_code, p.status FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'Approved' OR p.status='Printed'";
+  
+  if (courseTitle) {
+    pool.query(query + " AND (c.c_title LIKE ? OR c.c_code LIKE ?)", [`%${courseTitle}%`, `%${courseTitle}%`], (error, results) => {
+      if (error) {
+        console.error('Error fetching approved and printed papers:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+      }
+      res.status(200).json(results);
+    });
+  } else {
+    return res.status(400).json({ error: 'Missing courseTitle parameter' });
+  }
+});
+
 paperRouter.get('/getUploadedPapers', async (req, res) => {
  
   const query = "SELECT DISTINCT c.c_id,c.c_title,c.c_code, p.status FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'Uploaded'";
@@ -89,6 +119,37 @@ paperRouter.get('/SearchUploadedPapers', async (req, res) => {
     return res.status(400).json({ error: 'Missing courseTitle parameter' });
   }
 });
+
+paperRouter.get('/getUnUploadedPapers', async (req, res) => {
+ 
+  const query = "SELECT DISTINCT c.c_id,c.c_title,c.c_code, p.status FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'pending'";
+  pool.query(query, (error, results) => {
+    if (error) {
+      console.error('Error fetching unuploaded papers:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+    res.status(200).json(results);
+  });
+});
+
+paperRouter.get('/SearchUnUploadedPapers', async (req, res) => {
+
+  const { courseTitle } = req.query;
+  const query = "SELECT DISTINCT c.c_title, c.c_code, p.status FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'pending'";
+  
+  if (courseTitle) {
+    pool.query(query + " AND (c.c_title LIKE ? OR c.c_code LIKE ?)", [`%${courseTitle}%`, `%${courseTitle}%`], (error, results) => {
+      if (error) {
+        console.error('Error fetching unuploaded papers:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+      }
+      res.status(200).json(results);
+    });
+  } else {
+    return res.status(400).json({ error: 'Missing courseTitle parameter' });
+  }
+});
+
 
 
 paperRouter.get('/getTeachersNamebyCourseId/:c_id', async (req, res) => {
