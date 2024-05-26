@@ -73,7 +73,7 @@ questionRouter.get("/getQuestion/:p_id", (req, res) => {
 });
 
 // EDIT STATUS endpoint
-questionRouter.put("/editQuestionStatus/:q_id", (req, res) => {     
+questionRouter.put("/editQuestionStatusFromPendingToUploaded/:q_id", (req, res) => {       //For submission
     const qId = req.params.q_id;
     
     // SQL query to fetch the current status of the question
@@ -101,6 +101,34 @@ questionRouter.put("/editQuestionStatus/:q_id", (req, res) => {
       });
     });
   });
+
+
+  questionRouter.put("/editQuestionStatusToApprovedOrRejected/:q_id", (req, res) => {
+    const qId = req.params.q_id;
+    const newStatus = req.body.newStatus;
+  
+    if (!newStatus) {
+      return res.status(400).json({ error: "New status not provided" });
+    }
+  
+    const validStatuses = ['approved', 'rejected', 'uploaded'];
+    if (!validStatuses.includes(newStatus)) {
+      return res.status(400).json({ error: "Invalid status" });
+    }
+  
+    // SQL query to update the status of the question
+    const updateStatusQuery = "UPDATE question SET q_status = ? WHERE q_id = ?";
+    pool.query(updateStatusQuery, [newStatus, qId], (updateError) => {
+      if (updateError) {
+        console.error("Error updating question status:", updateError);
+        return res.status(500).json({ error: "Error updating question status" });
+      }
+      res.status(200).json({ message: "Question status updated successfully", newStatus });
+    });
+  });
+  
+
+  
 
 
 
@@ -141,6 +169,33 @@ questionRouter.put("/editQuestionStatus/:q_id", (req, res) => {
 questionRouter.get("/getQuestionsWithUploadedStatus/:p_id", (req, res) => {
     const paperId = req.params.p_id;
     const getQuery = "SELECT * FROM Question WHERE p_id=? and q_status='uploaded'";
+    
+    pool.query(getQuery, [paperId], (err, results) => {
+        if (err) {
+            console.error("Error retrieving questions:", err);
+            return res.status(500).send("Get Request Error");
+        }
+        if (results.length === 0) {
+            return res.status(404).json({ error: "Data not found for the given ID" });
+        }
+
+        const baseUrl = getBaseUrl(req);
+        const questionsWithFullImageUrl = results.map(question => {
+            if (question.q_image) {
+                question.q_image = baseUrl + question.q_image;
+            }
+            return question;
+        });
+
+        res.json(questionsWithFullImageUrl);
+    });
+});
+
+
+
+questionRouter.get("/getQuestionsWithPendingStatus/:p_id", (req, res) => {
+    const paperId = req.params.p_id;
+    const getQuery = "SELECT * FROM Question WHERE p_id=? and q_status='pending'";
     
     pool.query(getQuery, [paperId], (err, results) => {
         if (err) {

@@ -202,7 +202,7 @@ paperRouter.get('/getTeachersNamebyCourseId/:c_id', async (req, res) => {
 
   paperRouter.post("/addPaperHeaderMids", async (req, res) => {
     const { duration, degree, t_marks, term, year, exam_date, session, NoOfQuestions, c_id, s_id } = req.body;
-    const status = "pending";
+    const status = "uploaded";
   
     // Check if the term is 'Mid'
     if (term.toLowerCase()!=='mid'|| session.toLowerCase()!=='spring') {
@@ -289,6 +289,22 @@ paperRouter.get('/getTeachersNamebyCourseId/:c_id', async (req, res) => {
       res.status(200).json(result); // Send the result as a JSON response
     });
   });
+
+
+  paperRouter.put("/editPaperStatusToApproved/:p_id", (req, res) => {    
+    const pId = req.params.p_id;
+
+    const updateQuery = "UPDATE paper SET status = 'approved' where p_id=?";
+
+    pool.query(updateQuery, [pId], (err) => { 
+        if (err) {
+            console.error("Error updating topic:", err); 
+            return res.status(500).json({ error: "update Request Error" });
+        }
+        res.status(200).json({ message: "Paper status updated successfully" });
+    });
+});
+
 
 
 
