@@ -218,5 +218,17 @@ questionRouter.get("/getQuestionsWithPendingStatus/:p_id", (req, res) => {
     });
 });
 
+questionRouter.put("/editQuestionStatusToUploaded/:q_id", (req, res) => {     //Additional Questions screen
+    const qId = req.params.q_id;
 
+    const updateQuery = "UPDATE question SET q_status = 'uploaded' where q_id=?";
+
+    pool.query(updateQuery, [qId], (err) => { 
+        if (err) {
+            console.error("Error updating question:", err); 
+            return res.status(500).json({ error: "update Request Error" });
+        }
+        res.status(200).json({ message: "question status updated successfully" });
+    });
+});
 module.exports = questionRouter;

@@ -298,7 +298,7 @@ paperRouter.get('/getTeachersNamebyCourseId/:c_id', async (req, res) => {
 
     pool.query(updateQuery, [pId], (err) => { 
         if (err) {
-            console.error("Error updating topic:", err); 
+            console.error("Error updating paper status:", err); 
             return res.status(500).json({ error: "update Request Error" });
         }
         res.status(200).json({ message: "Paper status updated successfully" });
