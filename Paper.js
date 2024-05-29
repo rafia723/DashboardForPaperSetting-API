@@ -3,7 +3,7 @@ const { sql, pool } = require("./database");
 const paperRouter = express.Router();
 
 paperRouter.get('/getPrintedPapers', async (req, res) => {
-    const query = "SELECT DISTINCT c.c_title, p.status FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'Printed'";
+    const query = "SELECT DISTINCT c.c_title, p.status,c.c_code FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'Printed'";
     pool.query(query, (error, results) => {
       if (error) {
         console.error('Error fetching printed papers:', error);
@@ -15,10 +15,10 @@ paperRouter.get('/getPrintedPapers', async (req, res) => {
 
 paperRouter.get('/SearchPrintedPapers', async (req, res) => {
     const { courseTitle } = req.query;
-    const query = "SELECT DISTINCT c.c_title, p.status FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'Printed'";
+    const query = "SELECT DISTINCT c.c_title, p.status,c.c_code FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'Printed'";
     
     if (courseTitle) {
-      pool.query(query + " AND c.c_title LIKE ?", [`%${courseTitle}%`], (error, results) => {
+      pool.query(query + " AND (c.c_title LIKE ? OR c.c_code LIKE ?)", [`%${courseTitle}%`, `%${courseTitle}%`], (error, results) => {
         if (error) {
           console.error('Error fetching printed papers:', error);
           return res.status(500).json({ error: 'Internal Server Error' });
@@ -60,43 +60,43 @@ paperRouter.get('/SearchApprovedPapers', async (req, res) => {
     }
 });
 
-paperRouter.get('/getApprovedAndPrintedPapers', async (req, res) => {
+// paperRouter.get('/getApprovedAndPrintedPapers', async (req, res) => {
  
-  const query = "SELECT DISTINCT c.c_title,c.c_code, p.status FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'Approved' OR p.status='Printed'";
-  pool.query(query, (error, results) => {
-    if (error) {
-      console.error('Error fetching approved or printed papers:', error);
-      return res.status(500).json({ error: 'Internal Server Error' });
-    }
-    res.status(200).json(results);
-  });
-});
+//   const query = "SELECT DISTINCT c.c_title,c.c_code, p.status FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'Approved' OR p.status='Printed'";
+//   pool.query(query, (error, results) => {
+//     if (error) {
+//       console.error('Error fetching approved or printed papers:', error);
+//       return res.status(500).json({ error: 'Internal Server Error' });
+//     }
+//     res.status(200).json(results);
+//   });
+// });
 
-paperRouter.get('/SearchApprovedAndPrintedPapers', async (req, res) => {
-  const { courseTitle } = req.query;
+// paperRouter.get('/SearchApprovedAndPrintedPapers', async (req, res) => {
+//   const { courseTitle } = req.query;
 
-  // Construct the base SQL query
-  let query = `
-    SELECT DISTINCT c.c_title, c.c_code, p.status 
-    FROM Course c 
-    JOIN Paper p ON c.c_id = p.c_id 
-    WHERE p.status IN ('Approved', 'Printed')
-  `;
+//   // Construct the base SQL query
+//   let query = `
+//     SELECT DISTINCT c.c_title, c.c_code, p.status 
+//     FROM Course c 
+//     JOIN Paper p ON c.c_id = p.c_id 
+//     WHERE p.status IN ('Approved', 'Printed')
+//   `;
   
-  // If courseTitle is provided, add search conditions
-  if (courseTitle) {
-    query += ` AND (c.c_title LIKE '%${courseTitle}%' OR c.c_code LIKE '%${courseTitle}%')`;
-  }
+//   // If courseTitle is provided, add search conditions
+//   if (courseTitle) {
+//     query += ` AND (c.c_title LIKE '%${courseTitle}%' OR c.c_code LIKE '%${courseTitle}%')`;
+//   }
   
-  // Execute the query
-  pool.query(query, (error, results) => {
-    if (error) {
-      console.error('Error fetching approved and printed papers:', error);
-      return res.status(500).json({ error: 'Internal Server Error' });
-    }
-    res.status(200).json(results);
-  });
-});
+//   // Execute the query
+//   pool.query(query, (error, results) => {
+//     if (error) {
+//       console.error('Error fetching approved and printed papers:', error);
+//       return res.status(500).json({ error: 'Internal Server Error' });
+//     }
+//     res.status(200).json(results);
+//   });
+// });
 
 paperRouter.get('/getUploadedPapers', async (req, res) => {
  

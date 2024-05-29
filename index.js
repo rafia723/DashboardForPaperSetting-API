@@ -14,6 +14,9 @@ const questionRouter = require("./Question");
 const sessionRouter = require("./Session");
 const feedbackRouter = require("./Feedback");
 const TopicTaughtRouter = require("./TopicTaught");
+const gridviewHeaderRouter = require("./Gridview_Header");
+const gridviewWeightageRouter = require("./GridView_Weightage");
+
 
 
 const app = express();
@@ -35,6 +38,8 @@ app.use('/Images', express.static('Images'));
 app.use("/Session", sessionRouter);
 app.use("/Feedback", feedbackRouter);
 app.use("/TopicTaught", TopicTaughtRouter);
+app.use("/Gridview_Header", gridviewHeaderRouter);
+app.use("/GridView_Weightage", gridviewWeightageRouter);
 
 
 app.use((req, res, next) => {
