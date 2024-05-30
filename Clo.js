@@ -4,11 +4,30 @@ const { pool } = require("./database");
 const CloRouter = express.Router();
 
 CloRouter.post("/addClo", async (req, res) => {
-    const { clo_text,c_id } = req.body;
-    const status = "disapproved";
-    console.log("Data received:", { clo_text, c_id, status });
-    const insertCloQuery = "INSERT INTO Clo (clo_text, c_id, status) VALUES (?, ?, ?)";
-    const inserts = [clo_text, c_id, status];
+  const { clo_text, c_id } = req.body;
+  const status = "pending";
+
+  // Query to get the maximum clo_number for the given c_id
+  const getMaxCloNumberQuery = "SELECT MAX(clo_number) as max_clo_number FROM Clo WHERE c_id = ?";
+
+  pool.query(getMaxCloNumberQuery, [c_id], (error, results) => {
+    if (error) {
+      console.error("Error retrieving max clo_number:", error);
+      return res.status(500).json({ error: "Database Query Error" });
+    }
+
+    // Determine the new clo_number
+    let newCloNumber = 1;
+    if (results[0].max_clo_number !== null) {
+      const maxCloNumber = parseInt(results[0].max_clo_number.split('-')[1]);
+      newCloNumber = maxCloNumber + 1;
+    }
+    const clo_number = `CLO-${newCloNumber}`;
+
+    // Query to insert the new Clo record
+    const insertCloQuery = "INSERT INTO Clo (clo_text, c_id, status, clo_number) VALUES (?, ?, ?, ?)";
+    const inserts = [clo_text, c_id, status, clo_number];
+
     pool.query(insertCloQuery, inserts, (error) => {
       if (error) {
         console.error("Error inserting data:", error);
@@ -17,6 +36,7 @@ CloRouter.post("/addClo", async (req, res) => {
       res.status(200).json({ message: "Clo inserted successfully" });
     });
   });
+});
 
   CloRouter.get("/getClo/:c_id", (req, res) => {  
     const c_id = req.params.c_id; // Extract c_id from request parameters
@@ -44,18 +64,48 @@ CloRouter.post("/addClo", async (req, res) => {
     });
   });
 
-  CloRouter.put("/editClo/:clo_id", (req, res) => {    
-    const userId = req.params.clo_id;
-    const { clo_text,c_id } = req.body;
-    // SQL query to update a course
-    const updateQuery = "UPDATE clo SET clo_text = ?, c_id = ? where clo_id = ?";
-    const updates = [clo_text, c_id, userId]; // changed userId to clo_id
-    pool.query(updateQuery, updates, (err, result) => { // removed the array brackets around updates
+  CloRouter.put("/editClo/:clo_id", (req, res) => {
+    const cloId = req.params.clo_id;
+    const { clo_text, c_id } = req.body;
+
+    // SQL query to fetch the current status
+    const getStatusQuery = "SELECT status FROM clo WHERE clo_id = ?";
+    pool.query(getStatusQuery, [cloId], (err, result) => {
         if (err) {
-            console.error("Error updating clo:", err); // corrected the error variable name
-            return res.status(500).json({ error: "update Request Error" });
+            console.error("Error fetching CLO status:", err);
+            return res.status(500).json({ error: "Internal Server Error" });
         }
-        res.status(200).json({ message: "clo updated successfully" });
+
+        if (result.length === 0) {
+            return res.status(404).json({ error: "CLO record not found" });
+        }
+
+        const currentStatus = result[0].status;
+
+        // Check if the current status is disapproved
+        if (currentStatus === "disapproved") {
+            // SQL query to update the CLO
+            const updateQuery = "UPDATE clo SET clo_text = ?, c_id = ?, status = 'pending' WHERE clo_id = ?";
+            const updates = [clo_text, c_id, cloId];
+            pool.query(updateQuery, updates, (err, result) => {
+                if (err) {
+                    console.error("Error updating CLO:", err);
+                    return res.status(500).json({ error: "Internal Server Error" });
+                }
+                res.status(200).json({ message: "CLO updated successfully" });
+            });
+        } else {
+            // If status is pending or approved, update only clo_text and c_id without changing the status
+            const updateQuery = "UPDATE clo SET clo_text = ?, c_id = ? WHERE clo_id = ?";
+            const updates = [clo_text, c_id, cloId];
+            pool.query(updateQuery, updates, (err, result) => {
+                if (err) {
+                    console.error("Error updating CLO:", err);
+                    return res.status(500).json({ error: "Internal Server Error" });
+                }
+                res.status(200).json({ message: "CLO updated successfully" });
+            });
+        }
     });
 });
 
@@ -63,17 +113,18 @@ CloRouter.post("/addClo", async (req, res) => {
 CloRouter.put("/updateCloStatus/:clo_id", (req, res) => {
   const CLOId = req.params.clo_id;
   let { status } = req.body;
+
+  // Check if the provided status is valid
   if (status !== "approved" && status !== "disapproved") {
     return res.status(400).json({
-      error:
-        'Invalid status value. Status must be either "approved" or "disapproved"',
+      error: 'Invalid status value. Status must be either "approved" or "disapproved"',
     });
   }
-  if (status === "approved") {
-    status = "disapproved";
-  } else if (status === "disapproved") {
-    status = "approved";
-  }
+
+  // Toggle the status
+  status = status === "approved" ? "disapproved" : "approved";
+
+  // Update the status in the database
   const query = "UPDATE clo SET status = ? WHERE clo_id = ?";
   const values = [status, CLOId];
   pool.query(query, values, (err, result) => {
