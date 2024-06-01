@@ -294,7 +294,15 @@ paperRouter.get('/getTeachersNamebyCourseId/:c_id', async (req, res) => {
   paperRouter.put("/editPaperStatusToApproved/:p_id", (req, res) => {    
     const pId = req.params.p_id;
 
-    const updateQuery = "UPDATE paper SET status = 'approved' where p_id=?";
+    const updateQuery = ` UPDATE paper p
+    SET p.status = 'approved'
+    WHERE p.p_id = ?
+      AND p.NoOfQuestions = (
+          SELECT COUNT(*)
+          FROM question q
+          WHERE q.p_id = p.p_id
+            AND q.q_status = 'approved'
+      );`;
 
     pool.query(updateQuery, [pId], (err) => { 
         if (err) {

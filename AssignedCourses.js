@@ -81,6 +81,36 @@ AssignedCoursesRouter.get("/getUnAssignedCourses/:f_id", async (req, res) => {
   }
 });
 
+
+
+AssignedCoursesRouter.get("/searchUnAssignedCourses/:f_id", (req, res) => {   
+  const searchQuery = req.query.search;
+  const fid = req.params.f_id;
+
+  if (!searchQuery) {
+    return res.status(400).json({ error: "Missing search query parameter" });
+  }
+
+  // SQL query to search for courses with enabled status
+  const searchUnassignedCourses = `
+    SELECT c.* 
+    FROM course c 
+    LEFT JOIN assigned_course ac 
+    ON c.c_id = ac.c_id AND ac.f_id = ? 
+    WHERE ac.ac_id IS NULL 
+    AND (c.c_code LIKE ? OR c.c_title LIKE ?)
+  `;
+
+  const searchPattern = `%${searchQuery}%`;
+
+  pool.query(searchUnassignedCourses, [fid, searchPattern, searchPattern], (err, searchResult) => {
+    if (err) {
+      console.error("Error searching courses:", err);
+      return res.status(500).json({ error: "Search Request Error" });
+    }
+    res.json(searchResult);
+  });
+});
 // POST endpoint
 AssignedCoursesRouter.post("/assignCourse/:c_id/:f_id", (req, res) => {
   const c_id = req.params.c_id;

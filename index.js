@@ -16,6 +16,7 @@ const feedbackRouter = require("./Feedback");
 const TopicTaughtRouter = require("./TopicTaught");
 const gridviewHeaderRouter = require("./Gridview_Header");
 const gridviewWeightageRouter = require("./GridView_Weightage");
+const difficultyRouter = require("./Difficulty");
 
 
 
@@ -40,6 +41,7 @@ app.use("/Feedback", feedbackRouter);
 app.use("/TopicTaught", TopicTaughtRouter);
 app.use("/Gridview_Header", gridviewHeaderRouter);
 app.use("/GridView_Weightage", gridviewWeightageRouter);
+app.use("/Difficulty", difficultyRouter);
 
 
 app.use((req, res, next) => {
