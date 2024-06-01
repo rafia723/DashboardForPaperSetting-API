@@ -197,47 +197,112 @@ paperRouter.get('/getTeachersNamebyCourseId/:c_id', async (req, res) => {
     });
   });
 
-
-  
-
-  paperRouter.post("/addPaperHeaderMids", async (req, res) => {
-    const { duration, degree, t_marks, term, year, exam_date, session, NoOfQuestions, c_id, s_id } = req.body;
-    const status = "uploaded";
-  
-    // Check if the term is 'Mid'
-    if (term.toLowerCase()!=='mid'|| session.toLowerCase()!=='spring') {
-      return res.status(400).json({ error: "You can only create spring Mid term exams right now" });
-    }
-    // Check if the term Mid and no other mid term is added for the same subject and same session
-    const checkTermAndSessionQuery = "SELECT * FROM paper WHERE c_id = ? AND s_id = ? AND term = 'Mid' and session='Spring'";
-    pool.query(checkTermAndSessionQuery, [c_id, s_id], (err, result) => {
+  paperRouter.post("/addPaper", (req, res) => {
+    const { degree, exam_date, duration, term,NoOfQuestions, c_id } = req.body;
+    const status = "pending";
+    const sessionQuery =
+      "SELECT s_id, s_name, year FROM Session WHERE flag = 'active'";
+    pool.query(sessionQuery, (err, sessionResult) => {
       if (err) {
-        console.error("Error checking term and session:", err);
-        return res.status(500).json({ error: "Internal Server Error" });
+        console.error("Error executing the session query:", err);
+        res.status(500).json({ error: "Internal Server Error" });
+        return;
       }
-      if (result.length > 0) {
-        // Term already exists for the same cid and sid
-        return res.status(409).json({ error: `Term '${term}' and Session '${session}' already exists for this course and session` });
-      } else {
-        // No record found for the term, proceed with insertion
-        insertPaperHeader();
+      if (sessionResult.length === 0) {
+        res.status(404).json({ error: "No active session found" });
+        return;
       }
+      const { s_id, s_name, year } = sessionResult[0];
+      const checkTermQuery = "SELECT * FROM Paper WHERE term = ? AND c_id = ? AND s_id = ?";
+      pool.query(
+        checkTermQuery,
+        [term.toLowerCase(), c_id, s_id],
+        (err, existingPapers) => {
+          if (err) {
+            console.error("Error executing the check query:", err);
+            res.status(500).json({ error: "Internal Server Error" });
+            return;
+          }
+          if (existingPapers.length > 0) {
+            res.status(400).json({
+              error: `${term} term paper for this course already exists`
+            });
+            return;
+          }
+          
+          const insertQuery = `
+            INSERT INTO Paper (degree, exam_date, duration, term,NoOfQuestions, status, session, year, c_id, s_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,?)
+          `;
+  
+          const values = [
+            degree,
+            exam_date,
+            duration,
+            term,
+            NoOfQuestions,
+            status,
+            s_name,
+            year,
+            c_id,
+            s_id
+          ];
+  
+          pool.query(insertQuery, values, (err) => {
+            if (err) {
+              console.error("Error executing the insert query:", err);
+              res.status(500).json({ error: "Internal Server Error" });
+              return;
+            }
+  
+            res.status(200).json({ message: "Paper added successfully" });
+          });
+        }
+      );
     });
+  });
+  
+
+  
+
+  // paperRouter.post("/addPaperHeaderMids", async (req, res) => {   //Commented  ***Running
+  //   const { duration, degree, t_marks, term, year, exam_date, session, NoOfQuestions, c_id, s_id } = req.body;
+  //   const status = "uploaded";
+  
+  //   // Check if the term is 'Mid'
+  //   if (term.toLowerCase()!=='mid'|| session.toLowerCase()!=='spring') {
+  //     return res.status(400).json({ error: "You can only create spring Mid term exams right now" });
+  //   }
+  //   // Check if the term Mid and no other mid term is added for the same subject and same session
+  //   const checkTermAndSessionQuery = "SELECT * FROM paper WHERE c_id = ? AND s_id = ? AND term = 'Mid' and session='Spring'";
+  //   pool.query(checkTermAndSessionQuery, [c_id, s_id], (err, result) => {
+  //     if (err) {
+  //       console.error("Error checking term and session:", err);
+  //       return res.status(500).json({ error: "Internal Server Error" });
+  //     }
+  //     if (result.length > 0) {
+  //       // Term already exists for the same cid and sid
+  //       return res.status(409).json({ error: `Term '${term}' and Session '${session}' already exists for this course and session` });
+  //     } else {
+  //       // No record found for the term, proceed with insertion
+  //       insertPaperHeader();
+  //     }
+  //   });
  
   
-    // Function to insert paper header
-    function insertPaperHeader() {
-      const insertPaperHeaderQuery = "INSERT INTO paper (duration, degree, t_marks, term, year, exam_date, session, NoOfQuestions, c_id, s_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-      const inserts = [duration, degree, t_marks, term, year, exam_date, session, NoOfQuestions, c_id, s_id, status];
-      pool.query(insertPaperHeaderQuery, inserts, (error) => {
-        if (error) {
-          console.error("Error inserting data:", error);
-          return res.status(500).json({ error: "Internal Server Error" });
-        }
-        res.status(200).json({ message: "Paper Header inserted successfully" });
-      });
-    }
-  });
+  //   // Function to insert paper header
+  //   function insertPaperHeader() {
+  //     const insertPaperHeaderQuery = "INSERT INTO paper (duration, degree, t_marks, term, year, exam_date, session, NoOfQuestions, c_id, s_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+  //     const inserts = [duration, degree, t_marks, term, year, exam_date, session, NoOfQuestions, c_id, s_id, status];
+  //     pool.query(insertPaperHeaderQuery, inserts, (error) => {
+  //       if (error) {
+  //         console.error("Error inserting data:", error);
+  //         return res.status(500).json({ error: "Internal Server Error" });
+  //       }
+  //       res.status(200).json({ message: "Paper Header inserted successfully" });
+  //     });
+  //   }
+  // });
 
 
   // paperRouter.post("/addPaperHeaderMids", async (req, res) => {
@@ -277,7 +342,25 @@ paperRouter.get('/getTeachersNamebyCourseId/:c_id', async (req, res) => {
   paperRouter.get('/getPaperHeader/:c_id/:s_id', async (req, res) => {
     const cid = req.params.c_id;
     const sid = req.params.s_id;
-    const query = "SELECT * FROM paper WHERE c_id=? and s_id=?";
+    const query = "SELECT * FROM paper WHERE c_id=? AND s_id=?;";
+    const values = [cid, sid];
+    
+    pool.query(query, values, (err, result) => {
+      if (err) {
+        console.error("Error retrieving status:", err);
+        res.status(500).send("Get Request Error");
+        return;
+      }
+      res.status(200).json(result); // Send the result as a JSON response
+    });
+  });
+
+  
+
+  paperRouter.get('/getPaperHeaderIfTermisMidAndApproved/:c_id/:s_id', async (req, res) => {
+    const cid = req.params.c_id;
+    const sid = req.params.s_id;
+    const query = "SELECT * FROM paper WHERE c_id=? AND s_id=? AND NOT (term='mid' AND status='approved'OR Status='printed');";
     const values = [cid, sid];
     
     pool.query(query, values, (err, result) => {
@@ -312,6 +395,31 @@ paperRouter.get('/getTeachersNamebyCourseId/:c_id', async (req, res) => {
         res.status(200).json({ message: "Paper status updated successfully" });
     });
 });
+
+
+paperRouter.put("/editPaperStatusToUploaded/:p_id", (req, res) => {    
+  const pId = req.params.p_id;
+
+  const updateQuery = ` UPDATE paper p
+  SET p.status = 'uploaded'
+  WHERE p.p_id = ?
+    AND p.NoOfQuestions = (
+        SELECT COUNT(*)
+        FROM question q
+        WHERE q.p_id = p.p_id
+          AND q.q_status = 'uploaded'
+    );`;
+
+  pool.query(updateQuery, [pId], (err) => { 
+      if (err) {
+          console.error("Error updating paper status:", err); 
+          return res.status(500).json({ error: "update Request Error" });
+      }
+      res.status(200).json({ message: "Paper status updated successfully" });
+  });
+});
+
+
 
 
 

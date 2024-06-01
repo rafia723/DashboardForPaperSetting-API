@@ -20,6 +20,24 @@ facultyRouter.get("/getFaculty", (req, res) => {   //Datacell
   });
 });
 
+facultyRouter.get("/getFacultyName/:f_id", (req, res) => {
+  const f_id = req.params.f_id;
+  const getQuery = "SELECT f_name FROM Faculty WHERE f_id = ?";
+  pool.query(getQuery, [f_id], (err, result) => {
+    if (err) {
+      console.error("Error retrieving faculty:", err);
+      res.status(500).send("Get Request Error");
+      return;
+    }
+    if (result.length === 0) {
+      // If no faculty found with the provided f_id, send appropriate response
+      res.status(404).send("Faculty not found");
+      return;
+    }
+    res.json({ f_name: result[0].f_name }); // Send response as JSON object
+  });
+});
+
 facultyRouter.post("/loginFaculty", (req, res) => {
   const { username, password } = req.body;
 
