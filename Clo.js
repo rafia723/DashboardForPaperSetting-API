@@ -51,6 +51,33 @@ CloRouter.post("/addClo", async (req, res) => {
     });
   });
 
+
+
+  CloRouter.get('/getCloNumberofSpecificCloIds', (req, res) => {
+    const clo_ids = req.query.clo_ids; // assuming the list is passed as a query parameter
+    
+    if (!clo_ids) {
+      return res.status(400).send("No clo_ids provided");
+    }
+  
+    // Convert clo_ids to an array if it's not already one
+    const cloIdsArray = Array.isArray(clo_ids) ? clo_ids : clo_ids.split(',');
+  
+    // Construct the SQL query with the appropriate number of placeholders
+    const placeholders = cloIdsArray.map(() => '?').join(',');
+    const getQuery = `SELECT CAST(SUBSTRING_INDEX(clo_number, '-', -1) AS UNSIGNED) AS clo_number
+    FROM clo
+    WHERE clo_id IN (${placeholders})`;
+  
+    pool.query(getQuery, cloIdsArray, (err, result) => {
+      if (err) {
+        console.error("Error retrieving clos:", err);
+        return res.status(500).send("Get Request Error");
+      }
+      res.json(result);
+    });
+  });
+
   CloRouter.get("/getCloWithApprovedStatus/:c_id", (req, res) => {  
     const c_id = req.params.c_id; // Extract c_id from request parameters
     const getCloWithApprovedStatusQuery = "SELECT * FROM CLO WHERE c_id = ? and status='approved'";
