@@ -33,6 +33,25 @@ gridviewWeightageRouter.get("/getCourseGridViewWeightage/:c_id", (req, res) => {
 });
 
 
+gridviewWeightageRouter.get("/getCloWeightageofSpecificCourseAndHeaderName/:c_id/:name", (req, res) => {
+  const c_id = req.params.c_id;
+  const name = req.params.name;
+  const getQuery =
+  ` SELECT gvwt.*, clo.c_id FROM Course JOIN clo ON Course.c_id = CLO.c_id JOIN Grid_View_Weightage gvwt 
+  ON CLO.clo_id = gvwt.clo_id join grid_view_headers gwh ON gvwt.header_id=gwh.header_id WHERE 
+ Course.c_id = ? AND gwh.name=?;  ` ;
+ const inserts=[c_id,name];
+  pool.query(getQuery, inserts, (err, results) => {
+    if (err) {
+      console.error("Error executing the query:", err);
+      res.status(500).json({ error: "Internal Server Error" });
+      return;
+    }
+    res.json(results);
+  });
+});
+
+
   // To Get Grid_View_Weightage of Course
   gridviewWeightageRouter.get("/getCourseGridViewWeightageWithSpecificHeader/:c_id/:header_id", (req, res) => {
     const c_id = req.params.c_id;
