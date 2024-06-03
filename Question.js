@@ -22,27 +22,29 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage }).single('q_image');
 
 questionRouter.post("/addQuestion", upload, (req, res) => {
-   let q_imageUrl=null;
+    let q_imageUrl = null;
+    let insertedQId = null; // Variable to store the inserted q_id
     if (req.file) {
-        const imagePath = 'Images/'+req.file.filename; // Assuming req.file.filename contains the filename
-     q_imageUrl =imagePath;
+        const imagePath = 'Images/' + req.file.filename;
+        q_imageUrl = imagePath;
     }
-    const {q_text,q_marks, q_difficulty, q_status, t_id, p_id, f_id } = req.body;
+    const { q_text, q_marks, q_difficulty, q_status, t_id, p_id, f_id } = req.body;
 
-const insertQuery = "INSERT INTO Question ( q_text,q_image, q_marks, q_difficulty, q_status, t_id, p_id, f_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-pool.query(insertQuery, [q_text,q_imageUrl, q_marks, q_difficulty, q_status, t_id, p_id, f_id], (err) => {
-    if (err) {
-        console.error("Error inserting data:", err);
-        // If there's an error, delete the uploaded file
-        if(imagePath){
-            fs.unlinkSync(imagePath);
+    const insertQuery = "INSERT INTO Question (q_text, q_image, q_marks, q_difficulty, q_status, t_id, p_id, f_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+    pool.query(insertQuery, [q_text, q_imageUrl, q_marks, q_difficulty, q_status, t_id, p_id, f_id], (err, result) => {
+        if (err) {
+            console.error("Error inserting data:", err);
+            // If there's an error, delete the uploaded file
+            if (q_imageUrl) {
+                fs.unlinkSync(q_imageUrl);
+            }
+            return res.status(500).json({ error: "Post Request Error" });
         }
-        return res.status(500).json({ error: "Post Request Error" });
-    }
-    res.status(200).json({ message: "Question inserted successfully" });
+        // Get the newly inserted q_id
+        insertedQId = result.insertId;
+        res.status(200).json({ message: "Question inserted successfully", q_id: insertedQId });
+    });
 });
-});
-
 const getBaseUrl = (req) => {
     return req.protocol + '://' + req.get('host') + '/';
 };

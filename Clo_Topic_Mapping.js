@@ -38,6 +38,25 @@ Clo_Topic_MappingRouter.get("/getClosMappedWithTopic/:t_id", (req, res) => {
   });
 });
 
+
+
+Clo_Topic_MappingRouter.post("/getClosMappedWithTopicList", (req, res) => {  
+  const { t_ids } = req.body; // Assuming t_ids is an array of t_id
+
+  // Generate placeholders for the list of topic IDs based on the array length
+  const placeholders = t_ids.map(() => '?').join(',');
+
+  const getQuery = `SELECT * FROM Clo_Topic_Mapping WHERE t_id IN (${placeholders})`;
+
+  pool.query(getQuery, t_ids, (err, result) => {
+    if (err) {
+      console.error("Error retrieving Clos mapped with topics", err);
+      res.status(500).send("Get Request Error");
+      return;
+    }
+    res.json(result);
+  });
+});
 // Clo_Topic_MappingRouter.delete("/deleteMapping/:t_id/:clo_id", (req, res) => {
 //   const t_id = req.params.t_id;
 //   const clo_id = req.params.clo_id;

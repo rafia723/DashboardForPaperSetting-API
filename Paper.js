@@ -175,6 +175,22 @@ paperRouter.get('/getTeachersNamebyCourseId/:c_id', async (req, res) => {
     });
   });
 
+
+  paperRouter.get('/getPaperStatusOfCoursesAssignedToFaculty/:f_id', async (req, res) => {
+  
+    const  fid  = req.params.f_id;
+    const query = " SELECT c.c_title,p.`status` FROM course c JOIN  assigned_course ac ON c.c_id=ac.c_id JOIN paper p ON p.c_id=c.c_id WHERE ac.f_id=?";
+    
+      pool.query(query , [fid],(err, result) => {
+        if (err) {
+          console.error("Error retrieving", err);
+          res.status(500).send("Get Request Error");
+          return;
+        }
+        res.json(result);
+      });
+    });
+
   paperRouter.get('/getPaperStatus/:c_id/:s_id', async (req, res) => {   //It provides array of result thats how we can access 1 value
     const cid = req.params.c_id;
     const sid = req.params.s_id;
