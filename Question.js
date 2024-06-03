@@ -74,6 +74,32 @@ questionRouter.get("/getQuestion/:p_id", (req, res) => {
     });
 });
 
+
+questionRouter.get("/getQuestionbyQID/:q_id", (req, res) => {
+    const q_id = req.params.q_id;
+    const getQuery = "SELECT * FROM Question WHERE q_id=?";
+    
+    pool.query(getQuery, [q_id], (err, results) => {
+        if (err) {
+            console.error("Error retrieving questions:", err);
+            return res.status(500).send("Get Request Error");
+        }
+        if (results.length === 0) {
+            return res.status(404).json({ error: "Data not found for the given ID" });
+        }
+
+        const baseUrl = getBaseUrl(req);
+        const questionsWithFullImageUrl = results.map(question => {
+            if (question.q_image) {
+                question.q_image = baseUrl + question.q_image;
+            }
+            return question;
+        });
+
+        res.json(questionsWithFullImageUrl);
+    });
+});
+
 // EDIT STATUS endpoint
 questionRouter.put("/editQuestionStatusFromPendingToUploaded/:q_id", (req, res) => {       //For submission
     const qId = req.params.q_id;
@@ -131,6 +157,73 @@ questionRouter.put("/editQuestionStatusFromPendingToUploaded/:q_id", (req, res) 
   
 
   
+  questionRouter.put("/updateQuestionOfSpecificQid/:q_id", upload, (req, res) => {
+    const q_id = req.params.q_id; // Extract the q_id from the request params
+    let q_imageUrl = null;
+
+    if (req.file) {
+        const imagePath = 'Images/' + req.file.filename;
+        q_imageUrl = imagePath;
+    }
+
+    const { q_text, q_marks, q_difficulty, q_status, t_id, p_id, f_id } = req.body;
+
+    // Create the base query
+    let updateQuery = "UPDATE Question SET";
+    let updateValues = [];
+
+    // Dynamically build the query based on provided values
+    if (q_text !== undefined) {
+        updateQuery += " q_text = ?,";
+        updateValues.push(q_text);
+    }
+    if (q_marks !== undefined) {
+        updateQuery += " q_marks = ?,";
+        updateValues.push(q_marks);
+    }
+    if (q_difficulty !== undefined) {
+        updateQuery += " q_difficulty = ?,";
+        updateValues.push(q_difficulty);
+    }
+    if (q_status !== undefined) {
+        updateQuery += " q_status = ?,";
+        updateValues.push(q_status);
+    }
+    if (t_id !== undefined) {
+        updateQuery += " t_id = ?,";
+        updateValues.push(t_id);
+    }
+    if (p_id !== undefined) {
+        updateQuery += " p_id = ?,";
+        updateValues.push(p_id);
+    }
+    if (f_id !== undefined) {
+        updateQuery += " f_id = ?,";
+        updateValues.push(f_id);
+    }
+    if (q_imageUrl !== null) {
+        updateQuery += " q_image = ?,";
+        updateValues.push(q_imageUrl);
+    }
+
+    // Remove the last comma from the query and add the WHERE clause
+    updateQuery = updateQuery.slice(0, -1);
+    updateQuery += " WHERE q_id = ?";
+    updateValues.push(q_id);
+
+    // Execute the update query
+    pool.query(updateQuery, updateValues, (err, result) => {
+        if (err) {
+            console.error("Error updating data:", err);
+            // If there's an error, delete the uploaded file
+            if (q_imageUrl) {
+                fs.unlinkSync(q_imageUrl);
+            }
+            return res.status(500).json({ error: "Update Request Error" });
+        }
+        res.status(200).json({ message: "Question updated successfully", q_id: q_id });
+    });
+});
 
 
 

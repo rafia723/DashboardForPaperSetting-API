@@ -279,6 +279,69 @@ paperRouter.get('/getTeachersNamebyCourseId/:c_id', async (req, res) => {
   });
   
 
+  paperRouter.put("/UpdatePaper", (req, res) => {
+    const { degree, exam_date, duration, term, NoOfQuestions, c_id } = req.body;
+    const status = "uploaded";
+    const sessionQuery = "SELECT s_id, s_name, year FROM Session WHERE flag = 'active'";
+    pool.query(sessionQuery, (err, sessionResult) => {
+        if (err) {
+            console.error("Error executing the session query:", err);
+            res.status(500).json({ error: "Internal Server Error" });
+            return;
+        }
+        if (sessionResult.length === 0) {
+            res.status(404).json({ error: "No active session found" });
+            return;
+        }
+        const { s_id, s_name, year } = sessionResult[0];
+        const checkTermQuery = "SELECT * FROM Paper WHERE term = ? AND c_id = ? AND s_id = ?";
+        pool.query(
+            checkTermQuery,
+            [term.toLowerCase(), c_id, s_id],
+            (err, existingPapers) => {
+                if (err) {
+                    console.error("Error executing the check query:", err);
+                    res.status(500).json({ error: "Internal Server Error" });
+                    return;
+                }
+                if (existingPapers.length > 0) {
+                    // Paper already exists, update it
+                    let updateQuery = `
+                        UPDATE Paper
+                        SET
+                            degree = ?,
+                            duration = ?,
+                            NoOfQuestions = ?,
+                            status = ?
+                    `;
+                    const updateValues = [degree, duration, NoOfQuestions, status];
+
+                    // Conditionally add exam_date to the update query if it's provided
+                    if (exam_date) {
+                        updateQuery += ", exam_date = ?";
+                        updateValues.push(exam_date);
+                    }
+
+                    updateQuery += " WHERE term = ? AND c_id = ? AND s_id = ?";
+                    updateValues.push(term.toLowerCase(), c_id, s_id);
+
+                    pool.query(updateQuery, updateValues, (err) => {
+                        if (err) {
+                            console.error("Error executing the update query:", err);
+                            res.status(500).json({ error: "Internal Server Error" });
+                            return;
+                        }
+                        res.status(200).json({ message: "Paper updated successfully" });
+                    });
+                } else {
+                    // Paper doesn't exist, return an error
+                    res.status(404).json({ error: "Paper not found" });
+                }
+            }
+        );
+    });
+});
+
   
 
   // paperRouter.post("/addPaperHeaderMids", async (req, res) => {   //Commented  ***Running
