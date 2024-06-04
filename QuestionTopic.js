@@ -37,6 +37,46 @@ QuestionTopicRouter.post("/addTopicQuestion", async (req, res) => {
   });
   
 
+  QuestionTopicRouter.get("/getTopicDataMappedWithQuestion/:q_id", (req, res) => {  
+    const q_id = req.params.q_id; 
+    const getQuery = `
+    SELECT t.t_name,t.t_id
+    FROM questiontopic qt JOIN topic t ON t.t_id=qt.t_id
+    WHERE q_id = ?;`;
+    pool.query(getQuery,[q_id] ,(err, result) => {
+      if (err) {
+        console.error("Error retrieving topic mapped with question", err);
+        res.status(500).send("Get Request Error");
+        return;
+      }
+      res.json(result);
+    });
+  });
+  
+
+  //To find clos of specific question
+
+    QuestionTopicRouter.get("/getClosOfSpecificQuesestion/:q_id", (req, res) => {  
+      const q_id = req.params.q_id; 
+      const getQuery = `SELECT DISTINCT SUBSTRING(CLO.clo_number, 5) AS clo_number
+      FROM Question
+      JOIN QuestionTopic ON Question.q_id = QuestionTopic.q_id
+      JOIN clo_topic_mapping ON QuestionTopic.t_id = clo_topic_mapping.t_id
+      JOIN CLO ON clo_topic_mapping.clo_id = CLO.clo_id
+      WHERE Question.q_id = ?;`;
+      pool.query(getQuery,[q_id] ,(err, result) => {
+        if (err) {
+          console.error("Error retrieving Clos", err);
+          res.status(500).send("Get Request Error");
+          return;
+        }
+        res.json(result);
+      });
+    });
+
+
+
+
   QuestionTopicRouter.put("/updateTopicQuestionMapping", (req, res) => {
     const { q_id, topicIds } = req.body;
   
