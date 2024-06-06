@@ -93,4 +93,47 @@ ORDER BY
 });
 
 
+TopicTaughtRouter.get("/getcommonTopictaught/:c_id", (req, res) => {
+  const courseId = req.params.c_id;
+  const query =
+  `        
+  SELECT
+  t.t_id,
+  t.t_name,
+  ac.c_id,
+  COUNT(DISTINCT tt.f_id) AS num_faculty
+FROM
+  TopicTaught tt
+  JOIN Topic t ON tt.t_id = t.t_id
+  JOIN Assigned_Course ac ON tt.f_id = ac.f_id
+  JOIN (
+    SELECT c_id 
+    FROM Assigned_Course 
+    GROUP BY c_id 
+    HAVING COUNT(DISTINCT f_id) > 1
+  ) ac_mult ON ac.c_id = ac_mult.c_id
+WHERE
+  ac.c_id = 1
+GROUP BY
+  t.t_id, t.t_name, ac.c_id
+HAVING
+  COUNT(DISTINCT tt.f_id) = (
+    SELECT COUNT(DISTINCT f_id)
+    FROM Assigned_Course ac_inner
+    WHERE ac_inner.c_id = ac.c_id
+  )
+ORDER BY
+  t.t_id, ac.c_id;
+   `;
+  pool.query(query, [courseId],(err, results) => {
+    if (err) {
+      console.error("Error executing the query:", err);
+      res.status(500).json({ error: "Internal Server Error" });
+      return;
+    }
+    res.json(results);
+  });
+});
+
+
 module.exports = TopicTaughtRouter;
