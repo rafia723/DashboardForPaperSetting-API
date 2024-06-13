@@ -201,7 +201,9 @@ questionRouter.put("/editQuestionStatusFromPendingToUploaded/:q_id", (req, res) 
         updateQuery += " f_id = ?,";
         updateValues.push(f_id);
     }
-    if (q_imageUrl !== null) {
+
+    // Check if q_image is provided or not
+    if (q_imageUrl !== null || req.file === undefined) {
         updateQuery += " q_image = ?,";
         updateValues.push(q_imageUrl);
     }
@@ -216,7 +218,7 @@ questionRouter.put("/editQuestionStatusFromPendingToUploaded/:q_id", (req, res) 
         if (err) {
             console.error("Error updating data:", err);
             // If there's an error, delete the uploaded file
-            if (q_imageUrl) {
+            if (q_imageUrl !== null && req.file) {
                 fs.unlinkSync(q_imageUrl);
             }
             return res.status(500).json({ error: "Update Request Error" });

@@ -141,12 +141,12 @@ CloRouter.put("/updateCloStatus/:clo_id", (req, res) => {
   const CLOId = req.params.clo_id;
   let { status } = req.body;
 
-  // Check if the provided status is valid
-  if (status !== "approved" && status !== "disapproved") {
-    return res.status(400).json({
-      error: 'Invalid status value. Status must be either "approved" or "disapproved"',
-    });
-  }
+  // // Check if the provided status is valid
+  // if (status !== "approved" && status !== "disapproved") {
+  //   return res.status(400).json({
+  //     error: 'Invalid status value. Status must be either "approved" or "disapproved"',
+  //   });
+  // }
 
   // Toggle the status
   status = status === "approved" ? "disapproved" : "approved";
