@@ -38,13 +38,20 @@ feedbackRouter.get("/getFeedback", (req, res) => {
   });
 
   feedbackRouter.get("/getFeedbackofQuestionSpecificTeacher/:f_id", (req, res) => {  
-    const f_id = req.params.f_id; // Extract c_id from request parameters
-    const getQuery = `SELECT f.*, c.*
-    FROM feedback f
-    JOIN question q ON f.q_id = q.q_id
-    JOIN paper p ON q.p_id = p.p_id
-    JOIN course c ON p.c_id = c.c_id
-    WHERE f.f_id = ? AND q.q_status = 'commented';
+    const f_id = req.params.f_id; // Extract c_id from request parameters //query is fetching the latest feedback of same qid and pid
+    const getQuery = `SELECT f.*, c.*    
+FROM feedback f
+JOIN (
+    SELECT q_id, p_id, MAX(f_submitted) AS max_f_submitted
+    FROM feedback
+    GROUP BY q_id, p_id
+) AS latest_feedback ON f.q_id = latest_feedback.q_id 
+                      AND f.p_id = latest_feedback.p_id 
+                      AND f.f_submitted = latest_feedback.max_f_submitted
+JOIN question q ON f.q_id = q.q_id
+JOIN paper p ON q.p_id = p.p_id
+JOIN course c ON p.c_id = c.c_id
+WHERE f.f_id = ? AND q.q_status = 'commented';
     `;
     pool.query(getQuery,[f_id] ,(err, result) => {
       if (err) {
