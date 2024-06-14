@@ -28,10 +28,10 @@ questionRouter.post("/addQuestion", upload, (req, res) => {
         const imagePath = 'Images/' + req.file.filename;
         q_imageUrl = imagePath;
     }
-    const { q_text, q_marks, q_difficulty, q_status, t_id, p_id, f_id } = req.body;
+    const { q_text, q_marks, q_difficulty, q_status, p_id, f_id } = req.body;
 
-    const insertQuery = "INSERT INTO Question (q_text, q_image, q_marks, q_difficulty, q_status, t_id, p_id, f_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-    pool.query(insertQuery, [q_text, q_imageUrl, q_marks, q_difficulty, q_status, t_id, p_id, f_id], (err, result) => {
+    const insertQuery = "INSERT INTO Question (q_text, q_image, q_marks, q_difficulty, q_status, p_id, f_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    pool.query(insertQuery, [q_text, q_imageUrl, q_marks, q_difficulty, q_status, p_id, f_id], (err, result) => {
         if (err) {
             console.error("Error inserting data:", err);
             // If there's an error, delete the uploaded file
@@ -189,10 +189,10 @@ questionRouter.put("/editQuestionStatusFromPendingToUploaded/:q_id", (req, res) 
         updateQuery += " q_status = ?,";
         updateValues.push(q_status);
     }
-    if (t_id !== undefined) {
-        updateQuery += " t_id = ?,";
-        updateValues.push(t_id);
-    }
+    // if (t_id !== undefined) {
+    //     updateQuery += " t_id = ?,";
+    //     updateValues.push(t_id);
+    // }
     if (p_id !== undefined) {
         updateQuery += " p_id = ?,";
         updateValues.push(p_id);
