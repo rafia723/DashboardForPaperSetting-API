@@ -265,7 +265,7 @@ questionRouter.put("/editQuestionStatusFromPendingToUploaded/:q_id", (req, res) 
 
 questionRouter.get("/getQuestionsWithUploadedOrApprovedStatus/:p_id", (req, res) => {
     const paperId = req.params.p_id;
-    const getQuery = "SELECT * FROM Question WHERE p_id=? and q_status='uploaded' OR q_status='approved'";
+    const getQuery = "SELECT * FROM Question WHERE p_id=? AND (q_status='uploaded' OR q_status='approved');";
     
     pool.query(getQuery, [paperId], (err, results) => {
         if (err) {
