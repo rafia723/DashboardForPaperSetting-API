@@ -32,7 +32,7 @@ paperRouter.get('/SearchPrintedPapers', async (req, res) => {
 
 paperRouter.get('/getApprovedPapers', async (req, res) => {
  
-    const query = "SELECT DISTINCT c.c_title,c.c_code, p.status FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'Approved'";
+    const query = "SELECT DISTINCT c.c_title,c.c_code,c.c_id,p.p_id, p.status FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'Approved'";
     pool.query(query, (error, results) => {
       if (error) {
         console.error('Error fetching approved papers:', error);
@@ -439,7 +439,7 @@ paperRouter.get('/getTeachersNamebyCourseId/:c_id', async (req, res) => {
   paperRouter.get('/getPaperHeaderIfTermisMidAndApproved/:c_id/:s_id', async (req, res) => {
     const cid = req.params.c_id;
     const sid = req.params.s_id;
-    const query = "SELECT * FROM paper WHERE c_id=? AND s_id=? AND NOT (term='mid' AND status='approved'OR Status='printed');";
+    const query = "SELECT * FROM paper WHERE c_id=? AND s_id=? AND NOT (term='mid' AND  Status='printed');";
     const values = [cid, sid];
     
     pool.query(query, values, (err, result) => {
