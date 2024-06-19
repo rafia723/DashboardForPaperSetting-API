@@ -28,8 +28,33 @@ questionRouter.post("/addQuestion", upload, (req, res) => {
         const imagePath = 'Images/' + req.file.filename;
         q_imageUrl = imagePath;
     }
-    const { q_text, q_marks, q_difficulty, q_status, p_id, f_id } = req.body;
+    const { q_text, q_marks, q_difficulty, q_status, p_id, f_id , c_id, s_id} = req.body;
 
+    const similarityCheckQuery = `
+        SELECT q.q_id, q.q_text
+        FROM question q 
+        JOIN paper p ON q.p_id = p.p_id 
+        WHERE q.q_text LIKE ? 
+          AND p.c_id = ? 
+          AND p.s_id = ? 
+        LIMIT 1
+    `;
+
+    pool.query(similarityCheckQuery, [`%${q_text}%`, c_id, s_id], (similarityErr, similarityResult) => {
+        if (similarityErr) {
+            console.error("Error checking for similar questions:", similarityErr);
+            return res.status(500).json({ error: "Error checking for similar questions" });
+        }
+
+        if (similarityResult.length > 0) {
+            if (q_imageUrl) {
+                fs.unlinkSync(q_imageUrl);
+            }
+            // Similar question found
+            return res.status(409).json({ message: "Similar question already exist", similarQuestion: similarityResult[0] });
+            
+        }
+        
     const insertQuery = "INSERT INTO Question (q_text, q_image, q_marks, q_difficulty, q_status, p_id, f_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
     pool.query(insertQuery, [q_text, q_imageUrl, q_marks, q_difficulty, q_status, p_id, f_id], (err, result) => {
         if (err) {
@@ -44,6 +69,7 @@ questionRouter.post("/addQuestion", upload, (req, res) => {
         insertedQId = result.insertId;
         res.status(200).json({ message: "Question inserted successfully", q_id: insertedQId });
     });
+});
 });
 const getBaseUrl = (req) => {
     return req.protocol + '://' + req.get('host') + '/';
@@ -154,11 +180,14 @@ questionRouter.put("/editQuestionStatusFromPendingToUploaded/:q_id", (req, res) 
       res.status(200).json({ message: "Question status updated successfully", newStatus });
     });
   });
+
+
   
   questionRouter.put("/editQuestionText/:q_id", (req, res) => {    
     const qId = req.params.q_id;
-    const { q_text } = req.body;
-    // SQL query to update a course
+    const { q_text} = req.body;
+    
+
     const updateQuery = "UPDATE Question SET q_text = ? where q_id = ?";
     const updates = [q_text, qId]; 
     pool.query(updateQuery, updates, (err, result) => { 
@@ -179,7 +208,34 @@ questionRouter.put("/editQuestionStatusFromPendingToUploaded/:q_id", (req, res) 
         q_imageUrl = imagePath;
     }
 
-    const { q_text, q_marks, q_difficulty, q_status, t_id, p_id, f_id } = req.body;
+    const { q_text, q_marks, q_difficulty, q_status, p_id, f_id,c_id,s_id } = req.body;
+
+    const similarityCheckQuery = `
+    SELECT q.q_id, q.q_text
+    FROM question q 
+    JOIN paper p ON q.p_id = p.p_id 
+    WHERE q.q_text LIKE ? 
+      AND p.c_id = ? 
+      AND p.s_id = ? 
+    LIMIT 1
+    `;
+
+
+    pool.query(similarityCheckQuery, [`%${q_text}%`, c_id, s_id], (similarityErr, similarityResult) => {
+        if (similarityErr) {
+            console.error("Error during similarity check:", similarityErr);
+            return res.status(500).json({ error: "Similarity Check Error" });
+        }
+
+
+        if (similarityResult.length > 0) {
+            if (q_imageUrl) {
+                fs.unlinkSync(q_imageUrl);
+            }
+            // Similar question found
+            return res.status(409).json({ message: "Similar question already exists", similarQuestion: similarityResult[0] });
+        }
+
 
     // Create the base query
     let updateQuery = "UPDATE Question SET";
@@ -238,6 +294,7 @@ questionRouter.put("/editQuestionStatusFromPendingToUploaded/:q_id", (req, res) 
         }
         res.status(200).json({ message: "Question updated successfully", q_id: q_id });
     });
+});
 });
 
 

@@ -113,7 +113,7 @@ FROM
     HAVING COUNT(DISTINCT f_id) > 1
   ) ac_mult ON ac.c_id = ac_mult.c_id
 WHERE
-  ac.c_id = 1
+  ac.c_id = ?
 GROUP BY
   t.t_id, t.t_name, ac.c_id
 HAVING
