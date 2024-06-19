@@ -155,7 +155,20 @@ questionRouter.put("/editQuestionStatusFromPendingToUploaded/:q_id", (req, res) 
     });
   });
   
-
+  questionRouter.put("/editQuestionText/:q_id", (req, res) => {    
+    const qId = req.params.q_id;
+    const { q_text } = req.body;
+    // SQL query to update a course
+    const updateQuery = "UPDATE Question SET q_text = ? where q_id = ?";
+    const updates = [q_text, qId]; 
+    pool.query(updateQuery, updates, (err, result) => { 
+        if (err) {
+            console.error("Error updating question:", err); 
+            return res.status(500).json({ error: "update Request Error" });
+        }
+        res.status(200).json({ message: "question updated successfully" });
+    });
+});
   
   questionRouter.put("/updateQuestionOfSpecificQid/:q_id", upload, (req, res) => {
     const q_id = req.params.q_id; // Extract the q_id from the request params
