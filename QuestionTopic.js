@@ -23,7 +23,7 @@ QuestionTopicRouter.post("/addTopicQuestion", async (req, res) => {
     }
   });
 
-  QuestionTopicRouter.get("/getTopicMappedWithQuestion/:q_id", (req, res) => {  
+  QuestionTopicRouter.get("/getTopicIdMappedWithQuestion/:q_id", (req, res) => {  
     const q_id = req.params.q_id; 
     const getQuery = "SELECT t_id FROM questiontopic WHERE q_id = ?";
     pool.query(getQuery,[q_id] ,(err, result) => {
@@ -32,7 +32,11 @@ QuestionTopicRouter.post("/addTopicQuestion", async (req, res) => {
         res.status(500).send("Get Request Error");
         return;
       }
-      res.json(result);
+      // Map the result to extract t_id values
+    const t_ids = result.map(row => row.t_id);
+
+    // Return the list of t_id values
+    res.json(t_ids);
     });
   });
   

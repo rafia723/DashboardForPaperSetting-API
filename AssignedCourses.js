@@ -176,4 +176,21 @@ AssignedCoursesRouter.delete("/deleteAssignedCourse/:ac_id", (req, res) => {
   });
 });
 
+AssignedCoursesRouter.get("/getSeniorTeacherId/:c_id", (req, res) => {  
+  const c_id = req.params.c_id; // Extract c_id from request parameters
+  const getQuery = "SELECT f_id FROM assigned_course WHERE c_id = ? AND role = 'Senior'";
+  
+  pool.query(getQuery, [c_id], (err, result) => {
+    if (err) {
+      console.error("Error retrieving fid", err);
+      res.status(500).send("Get Request Error");
+      return;
+    }
+    if (result.length > 0) {
+      res.json(result[0].f_id);
+    } else {
+      res.status(404).send("No senior teacher found for the given course ID");
+    }
+  });
+});
 module.exports = AssignedCoursesRouter;

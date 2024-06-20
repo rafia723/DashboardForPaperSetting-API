@@ -27,14 +27,15 @@ Clo_Topic_MappingRouter.post("/addMappingsofCloAndTopic", async (req, res) => {
 
 Clo_Topic_MappingRouter.get("/getClosMappedWithTopic/:t_id", (req, res) => {  
   const t_id = req.params.t_id; 
-  const getQuery = "SELECT * FROM Clo_Topic_Mapping WHERE t_id = ?";
+  const getQuery = "SELECT clo_id FROM Clo_Topic_Mapping WHERE t_id = ?";
   pool.query(getQuery,[t_id] ,(err, result) => {
     if (err) {
       console.error("Error retrieving Clos mapped with topic", err);
       res.status(500).send("Get Request Error");
       return;
     }
-    res.json(result);
+    const t_ids = result.map(row => row.clo_id);
+    res.json(t_ids);
   });
 });
 
@@ -88,6 +89,42 @@ Clo_Topic_MappingRouter.post("/getClosMappedWithTopicList", (req, res) => {
 //   res.status(200).json({ message: "Data inserted successfully" });
 // });
 
+Clo_Topic_MappingRouter.put("/updateCloTopicMapping", (req, res) => {
+  const { t_id, cloIds } = req.body;
+
+  const deleteQuery = "DELETE FROM clo_topic_mapping WHERE t_id = ?";
+  const insertQuery = "INSERT INTO clo_topic_mapping (clo_id, t_id) VALUES (?, ?)";
+
+  // Delete existing entries for the given q_id
+  executeQuery(deleteQuery, [t_id], (deleteError, deleteResults) => {
+      if (deleteError) {
+          console.error("Error:", deleteError);
+          return res.status(500).json({ error: "Delete Request Error" });
+      }
+      
+      // Execute insert queries for each topic
+      let insertionErrors = [];
+      cloIds.forEach(clo => {
+          executeQuery(insertQuery, [clo, t_id], (insertError, insertResults) => {
+              if (insertError) {
+                  console.error("Error:", insertError);
+                  insertionErrors.push(insertError);
+              }
+          });
+      });
+
+      if (insertionErrors.length > 0) {
+          return res.status(500).json({ error: "Insertion Errors", details: insertionErrors });
+      }
+
+      res.status(200).json({ message: "clo mapping with topic updated successfully" });
+  });
+});
+
+// Function to execute a SQL query
+function executeQuery(query, values, callback) {
+  pool.query(query, values, callback);
+}
 
 
 module.exports = Clo_Topic_MappingRouter;

@@ -208,16 +208,17 @@ questionRouter.put("/editQuestionStatusFromPendingToUploaded/:q_id", (req, res) 
         q_imageUrl = imagePath;
     }
 
-    const { q_text, q_marks, q_difficulty, q_status, p_id, f_id,c_id,s_id } = req.body;
+    const { q_text, q_marks, q_difficulty, q_status, p_id, f_id,c_id,s_id} = req.body;
 
     const similarityCheckQuery = `
-    SELECT q.q_id, q.q_text
-    FROM question q 
-    JOIN paper p ON q.p_id = p.p_id 
-    WHERE q.q_text LIKE ? 
-      AND p.c_id = ? 
-      AND p.s_id = ? 
-    LIMIT 1
+    SELECT q.q_id ,q.q_text
+FROM question q 
+JOIN paper p ON q.p_id = p.p_id 
+WHERE q.q_text LIKE ? 
+  AND p.c_id = ?
+  AND p.s_id = ?
+   AND q.q_id != ?
+	LIMIT 1;
     `;
 
 
