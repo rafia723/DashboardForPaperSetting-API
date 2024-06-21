@@ -31,16 +31,17 @@ questionRouter.post("/addQuestion", upload, (req, res) => {
     const { q_text, q_marks, q_difficulty, q_status, p_id, f_id , c_id, s_id} = req.body;
 
     const similarityCheckQuery = `
-        SELECT q.q_id, q.q_text
+        SELECT q.q_id, q.q_text, sq.sq_id, sq.sq_text
         FROM question q 
         JOIN paper p ON q.p_id = p.p_id 
-        WHERE q.q_text LIKE ? 
-          AND p.c_id = ? 
-          AND p.s_id = ? 
+        LEFT JOIN subquestion sq ON sq.q_id = q.q_id 
+        WHERE (q.q_text LIKE ? OR sq.sq_text LIKE ?)
+        AND p.c_id = ?
+        AND p.s_id = ?
         LIMIT 1
     `;
 
-    pool.query(similarityCheckQuery, [`%${q_text}%`, c_id, s_id], (similarityErr, similarityResult) => {
+    pool.query(similarityCheckQuery, [`%${q_text}%`,`%${q_text}%`, c_id, s_id], (similarityErr, similarityResult) => {
         if (similarityErr) {
             console.error("Error checking for similar questions:", similarityErr);
             return res.status(500).json({ error: "Error checking for similar questions" });
@@ -211,18 +212,19 @@ questionRouter.put("/editQuestionStatusFromPendingToUploaded/:q_id", (req, res) 
     const { q_text, q_marks, q_difficulty, q_status, p_id, f_id,c_id,s_id} = req.body;
 
     const similarityCheckQuery = `
-    SELECT q.q_id ,q.q_text
+   SELECT q.q_id ,q.q_text,sq.sq_id,sq.sq_text
 FROM question q 
-JOIN paper p ON q.p_id = p.p_id 
-WHERE q.q_text LIKE ? 
-  AND p.c_id = ?
-  AND p.s_id = ?
+ JOIN paper p ON q.p_id = p.p_id 
+        LEFT JOIN subquestion sq ON sq.q_id = q.q_id 
+        WHERE (q.q_text LIKE ? OR sq.sq_text LIKE ?)
+        AND p.c_id = ?
+        AND p.s_id = ?
    AND q.q_id != ?
 	LIMIT 1;
     `;
 
 
-    pool.query(similarityCheckQuery, [`%${q_text}%`, c_id, s_id], (similarityErr, similarityResult) => {
+    pool.query(similarityCheckQuery, [`%${q_text}%`,`%${q_text}%`, c_id, s_id,q_id], (similarityErr, similarityResult) => {
         if (similarityErr) {
             console.error("Error during similarity check:", similarityErr);
             return res.status(500).json({ error: "Similarity Check Error" });

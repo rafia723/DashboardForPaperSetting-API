@@ -45,7 +45,7 @@ app.use("/Gridview_Header", gridviewHeaderRouter);
 app.use("/GridView_Weightage", gridviewWeightageRouter);
 app.use("/Difficulty", difficultyRouter);
 app.use("/QuestionTopic",QuestionTopicRouter);
-app.use("/SubQuestion", SubQuestionRouter);
+app.use("/SubQuestions", SubQuestionRouter);
 
 
 app.use((req, res, next) => {
