@@ -19,7 +19,6 @@ SubTopicRouter.get("/getSubTopic/:t_id", (req, res) => {
 
 SubTopicRouter.post("/addSubTopic", async (req, res) => {
     const { st_name,t_id } = req.body;
-    console.log("Data received:", { st_name, t_id });
     const insertSubTopicQuery = "INSERT INTO subTopic (st_name, t_id) VALUES (?, ?)";
     const inserts = [st_name, t_id];
     pool.query(insertSubTopicQuery, inserts, (error,result) => {
