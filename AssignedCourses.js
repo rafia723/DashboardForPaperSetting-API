@@ -193,4 +193,57 @@ AssignedCoursesRouter.get("/getSeniorTeacherId/:c_id", (req, res) => {
     }
   });
 });
+
+AssignedCoursesRouter.get("/getAssignedCoursesOfSessionAndYear", (req, res) => {
+  const { session, year } = req.query;
+
+  // Assuming term is not needed here, adjust the SQL query accordingly if it's needed
+
+  const query = `
+    SELECT DISTINCT c.c_title, c.c_id ,c.c_code 
+    FROM course c
+    JOIN assigned_course ac ON ac.c_id = c.c_id
+    JOIN session s ON s.s_id = ac.s_id
+    WHERE s.s_name = ? AND s.year = ?;
+  `;
+
+  pool.query(query, [session, year], (error, results) => {
+    if (error) {
+      console.error("Error fetching assigned courses:", error);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ error: "No assigned courses found" });
+    }
+    res.json(results);
+  });
+});
+
+AssignedCoursesRouter.get("/SearchAssignedCoursesOfSessionAndYear/", (req, res) => {   
+  const { courseTitle, session, year } = req.query;
+
+  if (!courseTitle) {
+    return res.status(400).json({ error: 'Missing courseTitle parameter' });
+  }
+
+  const query = `
+    SELECT DISTINCT c.c_title, c.c_id ,c.c_code 
+    FROM course c
+    JOIN assigned_course ac ON ac.c_id = c.c_id
+    JOIN session s ON s.s_id = ac.s_id
+    WHERE s.s_name = ? AND s.year = ?
+      AND (c.c_title LIKE ? OR c.c_code LIKE ?);
+  `;
+
+  const queryParams = [session, year, `%${courseTitle}%`, `%${courseTitle}%`];
+
+  pool.query(query, queryParams, (error, results) => {
+    if (error) {
+      console.error('Error fetching courses:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+    res.status(200).json(results);
+  });
+});
+
 module.exports = AssignedCoursesRouter;
