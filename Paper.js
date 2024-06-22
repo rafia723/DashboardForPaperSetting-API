@@ -435,6 +435,23 @@ paperRouter.get('/getTeachersNamebyCourseId/:c_id', async (req, res) => {
     });
   });
 
+
+  paperRouter.get('/getPaperHeaderWithPId/:p_id', async (req, res) => {
+    const pid = req.params.p_id;
+    
+    const query = "SELECT * FROM paper WHERE p_id=?;";
+    const values = [pid];
+    
+    pool.query(query, values, (err, result) => {
+      if (err) {
+        console.error("Error retrieving status:", err);
+        res.status(500).send("Get Request Error");
+        return;
+      }
+      res.status(200).json(result); // Send the result as a JSON response
+    });
+  });
+
   
 
   paperRouter.get('/getPaperHeaderIfTermisMidAndApproved/:c_id/:s_id', async (req, res) => {
@@ -452,6 +469,7 @@ paperRouter.get('/getTeachersNamebyCourseId/:c_id', async (req, res) => {
       res.status(200).json(result); // Send the result as a JSON response
     });
   });
+  
 
 
   paperRouter.put("/editPaperStatusToApproved/:p_id", (req, res) => {    
