@@ -34,11 +34,10 @@ SubQuestionRouter.post("/addSubQuestion", upload, (req, res) => {
         LEFT JOIN subquestion sq ON sq.q_id = q.q_id 
         WHERE (q.q_text LIKE ? OR sq.sq_text LIKE ?)
         AND p.c_id = ?
-        AND p.s_id = ?
         LIMIT 1
     `;
 
-    pool.query(similarityCheckQuery, [`%${sq_text}%`, `%${sq_text}%`, c_id, s_id], (similarityErr, similarityResult) => {
+    pool.query(similarityCheckQuery, [`%${sq_text}%`, `%${sq_text}%`, c_id], (similarityErr, similarityResult) => {
         if (similarityErr) {
             console.error("Error checking for similar questions:", similarityErr);
             return res.status(500).json({ error: "Error checking for similar questions" });
@@ -100,7 +99,7 @@ SubQuestionRouter.get("/getSubQuestionbyQID/:q_id", (req, res) => {
 
 
   
-  SubQuestionRouter.put("/updateSubQuestionOfSpecificQid/:sq_id", upload, (req, res) => {
+  SubQuestionRouter.put("/updateSubQuestionOfSpecificsQid/:sq_id", upload, (req, res) => {
     const sq_id = req.params.sq_id; // Extract the q_id from the request params
     let sq_imageUrl = null;
 
@@ -112,19 +111,18 @@ SubQuestionRouter.get("/getSubQuestionbyQID/:q_id", (req, res) => {
     const { sq_text,c_id,s_id} = req.body;
 
     const similarityCheckQuery = `
-    SELECT q.q_id ,q.q_text,sq.sq_id,sq.sq_text
-FROM question q 
- JOIN paper p ON q.p_id = p.p_id 
-        LEFT JOIN subquestion sq ON sq.q_id = q.q_id 
-        WHERE (q.q_text LIKE ? OR sq.sq_text LIKE ?)
-        AND p.c_id = ?
-        AND p.s_id = ?
-   AND sq.sq_id != ?
-	LIMIT 1;
+    SELECT q.q_id, q.q_text, sq.sq_id, sq.sq_text
+FROM question q
+JOIN paper p ON q.p_id = p.p_id
+LEFT JOIN subquestion sq ON sq.q_id = q.q_id
+WHERE (q.q_text LIKE ? OR sq.sq_text LIKE ?)
+AND p.c_id = ?
+AND (sq.sq_id IS NULL OR sq.sq_id != ?)
+LIMIT 1;
     `;
 
 
-    pool.query(similarityCheckQuery, [`%${sq_text}%`,`%${sq_text}%`, c_id, s_id,sq_id], (similarityErr, similarityResult) => {
+    pool.query(similarityCheckQuery, [`%${sq_text}%`,`%${sq_text}%`, c_id,sq_id], (similarityErr, similarityResult) => {
         if (similarityErr) {
             console.error("Error during similarity check:", similarityErr);
             return res.status(500).json({ error: "Similarity Check Error" });
@@ -157,8 +155,8 @@ FROM question q
 
     // Remove the last comma from the query and add the WHERE clause
     updateQuery = updateQuery.slice(0, -1);
-    updateQuery += " WHERE q_id = ?";
-    updateValues.push(q_id);
+    updateQuery += " WHERE sq_id = ?";
+    updateValues.push(sq_id);
 
     // Execute the update query
     pool.query(updateQuery, updateValues, (err, result) => {
@@ -170,7 +168,7 @@ FROM question q
             }
             return res.status(500).json({ error: "Update Request Error" });
         }
-        res.status(200).json({ message: "subQuestion updated successfully", q_id: q_id });
+        res.status(200).json({ message: "subQuestion updated successfully", sq_id: sq_id });
     });
 });
 });

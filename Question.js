@@ -37,11 +37,10 @@ questionRouter.post("/addQuestion", upload, (req, res) => {
         LEFT JOIN subquestion sq ON sq.q_id = q.q_id 
         WHERE (q.q_text LIKE ? OR sq.sq_text LIKE ?)
         AND p.c_id = ?
-        AND p.s_id = ?
         LIMIT 1
     `;
 
-    pool.query(similarityCheckQuery, [`%${q_text}%`,`%${q_text}%`, c_id, s_id], (similarityErr, similarityResult) => {
+    pool.query(similarityCheckQuery, [`%${q_text}%`,`%${q_text}%`, c_id], (similarityErr, similarityResult) => {
         if (similarityErr) {
             console.error("Error checking for similar questions:", similarityErr);
             return res.status(500).json({ error: "Error checking for similar questions" });
@@ -209,7 +208,7 @@ questionRouter.put("/editQuestionStatusFromPendingToUploaded/:q_id", (req, res) 
         q_imageUrl = imagePath;
     }
 
-    const { q_text, q_marks, q_difficulty, q_status, p_id, f_id,c_id,s_id} = req.body;
+    const { q_text, q_marks, q_difficulty, q_status, p_id, f_id,c_id} = req.body;
 
     const similarityCheckQuery = `
    SELECT q.q_id ,q.q_text,sq.sq_id,sq.sq_text
@@ -218,13 +217,12 @@ FROM question q
         LEFT JOIN subquestion sq ON sq.q_id = q.q_id 
         WHERE (q.q_text LIKE ? OR sq.sq_text LIKE ?)
         AND p.c_id = ?
-        AND p.s_id = ?
    AND q.q_id != ?
 	LIMIT 1;
     `;
 
 
-    pool.query(similarityCheckQuery, [`%${q_text}%`,`%${q_text}%`, c_id, s_id,q_id], (similarityErr, similarityResult) => {
+    pool.query(similarityCheckQuery, [`%${q_text}%`,`%${q_text}%`, c_id,q_id], (similarityErr, similarityResult) => {
         if (similarityErr) {
             console.error("Error during similarity check:", similarityErr);
             return res.status(500).json({ error: "Similarity Check Error" });
@@ -238,7 +236,6 @@ FROM question q
             // Similar question found
             return res.status(409).json({ message: "Similar question already exists", similarQuestion: similarityResult[0] });
         }
-
 
     // Create the base query
     let updateQuery = "UPDATE Question SET";

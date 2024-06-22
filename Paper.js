@@ -30,6 +30,7 @@ paperRouter.get('/SearchPrintedPapers', async (req, res) => {
     }
 });
 
+
 paperRouter.get('/getApprovedPapers', async (req, res) => {
  
     const query = "SELECT DISTINCT c.c_title,c.c_code,c.c_id,p.p_id, p.status FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'Approved'";
@@ -512,8 +513,39 @@ paperRouter.put("/editPaperStatusToPrinted/:p_id", (req, res) => {
   });
 });
 
+paperRouter.get('/getPrintedPapersWithSessionYearAndTerm', async (req, res) => {
+  const { session, term, year } = req.query;
+  const query = `
+    SELECT DISTINCT c.c_title, p.status, c.c_code, c.c_id, p.p_id 
+    FROM Course c 
+    JOIN Paper p ON c.c_id = p.c_id 
+    WHERE p.status = 'Printed' AND p.session=? AND p.term=? AND p.year=?
+  `;
+  pool.query(query, [session, term, year], (error, results) => {
+    if (error) {
+      console.error('Error fetching printed papers:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+    res.status(200).json(results);
+  });
+});
 
-
+paperRouter.get('/SearchPrintedPapersWithSessionTermAndYear', async (req, res) => {
+ 
+  const {courseTitle, session, term, year } = req.query;
+  const query = "SELECT DISTINCT c.c_title, p.status,c.c_code FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'Printed'";
+  if (courseTitle) {
+    pool.query(query + " AND (c.c_title LIKE ? OR c.c_code LIKE ?) And p.session=? and p.term=? and p.year=?", [`%${courseTitle}%`, `%${courseTitle}%`,session,term,year], (error, results) => {
+      if (error) {
+        console.error('Error fetching printed papers:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+      }
+      res.status(200).json(results);
+    });
+  } else {
+    return res.status(400).json({ error: 'Missing courseTitle parameter' });
+  }
+});
 
 
   
