@@ -531,6 +531,24 @@ WHERE
     });
   });
 
+  paperRouter.get("/getTopicsofSpecificPid/:p_id", (req, res) => {  
+    const p_id = req.params.p_id; // Extract c_id from request parameters
+    const getQuery = `   
+  SELECT distinct t.t_name
+  FROM Question q
+  JOIN QuestionTopic qt ON q.q_id = qt.q_id
+  JOIN Topic t ON qt.t_id = t.t_id
+  WHERE q.q_status = 'uploaded' AND q.p_id = ?;`;
+    pool.query(getQuery,[p_id] ,(err, result) => {
+      if (err) {
+        console.error("Error retrieving topics", err);
+        res.status(500).send("Get Request Error");
+        return;
+      }
+      res.json(result);
+    });
+  });
+
   
 
   paperRouter.get('/getPaperHeaderIfTermisMidAndApproved/:c_id/:s_id', async (req, res) => {
