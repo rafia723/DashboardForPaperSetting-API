@@ -3,62 +3,87 @@ const { sql, pool } = require("./database");
 const paperRouter = express.Router();
 
 paperRouter.get('/getPrintedPapers', async (req, res) => {
-    const query = "SELECT DISTINCT c.c_title, p.status,c.c_code FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'Printed'";
-    pool.query(query, (error, results) => {
-      if (error) {
-        console.error('Error fetching printed papers:', error);
-        return res.status(500).json({ error: 'Internal Server Error' });
-      }
-      res.status(200).json(results);
-    });
+  const query = `
+      SELECT DISTINCT c.c_title, p.status, c.c_code
+      FROM Course c
+      JOIN Paper p ON c.c_id = p.c_id
+      JOIN Session s ON p.s_id = s.s_id
+      WHERE p.status = 'Printed' AND s.flag = 'active'
+  `;
+  pool.query(query, (error, results) => {
+    if (error) {
+      console.error('Error fetching printed papers:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+    res.status(200).json(results);
+  });
 });
 
 paperRouter.get('/SearchPrintedPapers', async (req, res) => {
-    const { courseTitle } = req.query;
-    const query = "SELECT DISTINCT c.c_title, p.status,c.c_code FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'Printed'";
-    
-    if (courseTitle) {
-      pool.query(query + " AND (c.c_title LIKE ? OR c.c_code LIKE ?)", [`%${courseTitle}%`, `%${courseTitle}%`], (error, results) => {
-        if (error) {
+  const { courseTitle } = req.query;
+
+  if (!courseTitle) {
+      return res.status(400).json({ error: 'Missing courseTitle parameter' });
+  }
+
+  const query = `
+      SELECT DISTINCT c.c_title, p.status, c.c_code
+      FROM Course c
+      JOIN Paper p ON c.c_id = p.c_id
+      JOIN Session s ON p.s_id = s.s_id
+      WHERE p.status = 'Printed' AND s.flag = 'active'
+        AND (c.c_title LIKE ? OR c.c_code LIKE ?)
+  `;
+
+  pool.query(query, [`%${courseTitle}%`, `%${courseTitle}%`], (error, results) => {
+      if (error) {
           console.error('Error fetching printed papers:', error);
           return res.status(500).json({ error: 'Internal Server Error' });
-        }
-        res.status(200).json(results);
-      });
-    } else {
-      return res.status(400).json({ error: 'Missing courseTitle parameter' });
-    }
-});
-
-
-paperRouter.get('/getApprovedPapers', async (req, res) => {
- 
-    const query = "SELECT DISTINCT c.c_title,c.c_code,c.c_id,p.p_id, p.status FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'Approved'";
-    pool.query(query, (error, results) => {
-      if (error) {
-        console.error('Error fetching approved papers:', error);
-        return res.status(500).json({ error: 'Internal Server Error' });
       }
       res.status(200).json(results);
-    });
+  });
+});
+
+paperRouter.get('/getApprovedPapers', async (req, res) => {
+  const query = `
+      SELECT DISTINCT c.c_title, c.c_code, c.c_id, p.p_id, p.status
+      FROM Course c
+      JOIN Paper p ON c.c_id = p.c_id
+      JOIN Session s ON p.s_id = s.s_id
+      WHERE p.status = 'Approved' AND s.flag = 'active'
+  `;
+  pool.query(query, (error, results) => {
+      if (error) {
+          console.error('Error fetching approved papers:', error);
+          return res.status(500).json({ error: 'Internal Server Error' });
+      }
+      res.status(200).json(results);
+  });
 });
 
 paperRouter.get('/SearchApprovedPapers', async (req, res) => {
-  
-    const { courseTitle } = req.query;
-    const query = "SELECT DISTINCT c.c_title, c.c_code, p.status FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'Approved'";
-    
-    if (courseTitle) {
-      pool.query(query + " AND (c.c_title LIKE ? OR c.c_code LIKE ?)", [`%${courseTitle}%`, `%${courseTitle}%`], (error, results) => {
-        if (error) {
+  const { courseTitle } = req.query;
+
+  if (!courseTitle) {
+      return res.status(400).json({ error: 'Missing courseTitle parameter' });
+  }
+
+  const query = `
+      SELECT DISTINCT c.c_title, c.c_code, c.c_id, p.p_id, p.status
+      FROM Course c
+      JOIN Paper p ON c.c_id = p.c_id
+      JOIN Session s ON p.s_id = s.s_id
+      WHERE p.status = 'Approved' AND s.flag = 'active'
+        AND (c.c_title LIKE ? OR c.c_code LIKE ?)
+  `;
+
+  pool.query(query, [`%${courseTitle}%`, `%${courseTitle}%`], (error, results) => {
+      if (error) {
           console.error('Error fetching approved papers:', error);
           return res.status(500).json({ error: 'Internal Server Error' });
-        }
-        res.status(200).json(results);
-      });
-    } else {
-      return res.status(400).json({ error: 'Missing courseTitle parameter' });
-    }
+      }
+      res.status(200).json(results);
+  });
 });
 
 // paperRouter.get('/getApprovedAndPrintedPapers', async (req, res) => {
@@ -100,87 +125,141 @@ paperRouter.get('/SearchApprovedPapers', async (req, res) => {
 // });
 
 paperRouter.get('/getUploadedPapers', async (req, res) => {
- 
-  const query = "SELECT DISTINCT c.c_id,c.c_title,c.c_code, p.status FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'Uploaded'";
+  const query = `
+      SELECT DISTINCT c.c_id, c.c_title, c.c_code, p.status
+      FROM Course c
+      JOIN Paper p ON c.c_id = p.c_id
+      JOIN Session s ON p.s_id = s.s_id
+      WHERE p.status = 'Uploaded' AND s.flag = 'active'
+  `;
   pool.query(query, (error, results) => {
-    if (error) {
-      console.error('Error fetching uploaded papers:', error);
-      return res.status(500).json({ error: 'Internal Server Error' });
-    }
-    res.status(200).json(results);
+      if (error) {
+          console.error('Error fetching uploaded papers:', error);
+          return res.status(500).json({ error: 'Internal Server Error' });
+      }
+      res.status(200).json(results);
   });
 });
 
 paperRouter.get('/SearchUploadedPapers', async (req, res) => {
-
   const { courseTitle } = req.query;
-  const query = "SELECT DISTINCT c.c_title, c.c_code, p.status FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'Uploaded'";
-  
-  if (courseTitle) {
-    pool.query(query + " AND (c.c_title LIKE ? OR c.c_code LIKE ?)", [`%${courseTitle}%`, `%${courseTitle}%`], (error, results) => {
+
+  if (!courseTitle) {
+      return res.status(400).json({ error: 'Missing courseTitle parameter' });
+  }
+
+  const query = `
+      SELECT DISTINCT c.c_title, c.c_code, p.status
+      FROM Course c
+      JOIN Paper p ON c.c_id = p.c_id
+      JOIN Session s ON p.s_id = s.s_id
+      WHERE p.status = 'Uploaded' AND s.flag = 'active'
+        AND (c.c_title LIKE ? OR c.c_code LIKE ?)
+  `;
+
+  pool.query(query, [`%${courseTitle}%`, `%${courseTitle}%`], (error, results) => {
       if (error) {
-        console.error('Error fetching uploaded papers:', error);
-        return res.status(500).json({ error: 'Internal Server Error' });
+          console.error('Error fetching uploaded papers:', error);
+          return res.status(500).json({ error: 'Internal Server Error' });
       }
       res.status(200).json(results);
-    });
-  } else {
-    return res.status(400).json({ error: 'Missing courseTitle parameter' });
-  }
+  });
 });
 
 paperRouter.get('/getUnUploadedPapers', async (req, res) => {
- 
-  const query = "SELECT DISTINCT c.c_id,c.c_title,c.c_code, p.status FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'pending'";
+  const query = `
+    SELECT DISTINCT c.c_id, c.c_title, c.c_code, COALESCE(p.status, 'No Header') AS status
+FROM Course c
+LEFT JOIN (
+    SELECT p1.c_id, p1.status
+    FROM Paper p1
+    JOIN Session s ON p1.s_id = s.s_id
+    WHERE s.flag = 'active'
+) p ON c.c_id = p.c_id
+WHERE COALESCE(p.status, 'No Header') NOT IN ('uploaded', 'printed')
+   OR COALESCE(p.status, 'No Header') = 'pending';
+  `;
+
   pool.query(query, (error, results) => {
-    if (error) {
-      console.error('Error fetching unuploaded papers:', error);
-      return res.status(500).json({ error: 'Internal Server Error' });
-    }
-    res.status(200).json(results);
+      if (error) {
+          console.error('Error fetching unuploaded papers:', error);
+          return res.status(500).json({ error: 'Internal Server Error' });
+      }
+      res.status(200).json(results);
   });
 });
 
 paperRouter.get('/SearchUnUploadedPapers', async (req, res) => {
-
   const { courseTitle } = req.query;
-  const query = "SELECT DISTINCT c.c_title, c.c_code, p.status FROM Course c JOIN Paper p ON c.c_id = p.c_id WHERE p.status = 'pending'";
   
+  const baseQuery = `
+      SELECT DISTINCT c.c_title, c.c_code, COALESCE(p.status, 'No Header') AS status
+      FROM Course c
+      LEFT JOIN (
+          SELECT p1.c_id, p1.status
+          FROM Paper p1
+          JOIN Session s ON p1.s_id = s.s_id
+          WHERE p1.status = 'pending' AND s.flag = 'active'
+      ) p ON c.c_id = p.c_id
+      WHERE COALESCE(p.status, 'No Header') = 'pending'
+  `;
+  
+  let query = baseQuery;
+
   if (courseTitle) {
-    pool.query(query + " AND (c.c_title LIKE ? OR c.c_code LIKE ?)", [`%${courseTitle}%`, `%${courseTitle}%`], (error, results) => {
+      query += ` AND (c.c_title LIKE '%${courseTitle}%' OR c.c_code LIKE '%${courseTitle}%')`;
+  }
+
+  pool.query(query, (error, results) => {
       if (error) {
-        console.error('Error fetching unuploaded papers:', error);
-        return res.status(500).json({ error: 'Internal Server Error' });
+          console.error('Error fetching unuploaded papers:', error);
+          return res.status(500).json({ error: 'Internal Server Error' });
       }
       res.status(200).json(results);
-    });
-  } else {
-    return res.status(400).json({ error: 'Missing courseTitle parameter' });
-  }
+  });
 });
 
 
 
 paperRouter.get('/getTeachersNamebyCourseId/:c_id', async (req, res) => {
+  const cid = req.params.c_id;
+  const query = `
+      SELECT DISTINCT f.f_name
+      FROM faculty f
+      JOIN assigned_course ac ON f.f_id = ac.f_id
+      JOIN Session s ON ac.s_id = s.s_id
+      WHERE ac.c_id = ? AND s.flag = 'active'
+  `;
   
-  const  cid  = req.params.c_id;
-  const query = "SELECT distinct f_name FROM faculty f JOIN assigned_course ac ON f.f_id=ac.f_id WHERE c_id=?";
-  
-    pool.query(query , [cid],(err, result) => {
+  pool.query(query, [cid], (err, result) => {
       if (err) {
-        console.error("Error retrieving Teachers by course", err);
-        res.status(500).send("Get Request Error");
-        return;
+          console.error("Error retrieving Teachers by course and active session", err);
+          res.status(500).send("Get Request Error");
+          return;
       }
       res.json(result);
-    });
   });
+});
 
 
   paperRouter.get('/getPaperStatusOfCoursesAssignedToFaculty/:f_id', async (req, res) => {
   
     const  fid  = req.params.f_id;
-    const query = " SELECT c.c_title,p.`status` FROM course c JOIN  assigned_course ac ON c.c_id=ac.c_id JOIN paper p ON p.c_id=c.c_id WHERE ac.f_id=?";
+    const query =  ` SELECT 
+  c.c_title, 
+  p.status 
+FROM 
+  course c 
+JOIN 
+  assigned_course ac ON c.c_id = ac.c_id 
+JOIN 
+  paper p ON p.c_id = c.c_id
+JOIN 
+  session s ON s.s_id = ac.s_id
+WHERE 
+  ac.f_id = ? 
+  AND s.flag = 'active'
+  AND p.s_id = s.s_id;` 
     
       pool.query(query , [fid],(err, result) => {
         if (err) {

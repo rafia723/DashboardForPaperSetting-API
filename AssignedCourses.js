@@ -172,7 +172,10 @@ AssignedCoursesRouter.put("/editRole/:c_id/:f_id", async (req, res) => {
     if (!/^\d+$/.test(c_id)) {
       return res.status(400).json({ error: "Invalid course ID" });
     }
-    const editStatusQuery = 'UPDATE Assigned_Course SET role = CASE WHEN f_id = ? THEN "Senior" ELSE "Junior" END WHERE c_id = ?';
+    const editStatusQuery = `UPDATE Assigned_Course ac
+JOIN session s ON ac.s_id = s.s_id
+SET ac.role = CASE WHEN ac.f_id = ? THEN 'Senior' ELSE 'Junior' END
+WHERE ac.c_id = ? AND s.flag = 'active';`;
     pool.query(editStatusQuery, [f_id, c_id], (error, results) => {
       if (error) {
         console.error("Error updating Role:", error);
