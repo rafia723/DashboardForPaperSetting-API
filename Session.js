@@ -17,7 +17,7 @@ sessionRouter.get('/getActiveSession', async (req, res) => {
 
   sessionRouter.get('/getSession', async (req, res) => {
  
-    const query = "SELECT * from Session;";
+    const query = "SELECT * from Session where year=2024;";
     pool.query(query, (error, results) => {
       if (error) {
         console.error('Error fetching session :', error);
