@@ -10,20 +10,23 @@ AssignedCoursesRouter.get("/getAssignedCourses/:f_id", (req, res) => {
   if (!/^\d+$/.test(userId)) {
     return res.status(400).json({ error: "Invalid user ID" });
   }
-  // SQL query to retrieve assigned courses for a faculty by ID
+
+  // SQL query to retrieve assigned courses for a faculty in the active session
   const getAssignedCoursesQuery = `
-    SELECT ac.*, f.f_name , c.c_title , c.c_code 
+    SELECT ac.*, f.f_name, c.c_title, c.c_code 
     FROM faculty f
     JOIN Assigned_Course ac ON f.f_id = ac.f_id
     JOIN course c ON ac.c_id = c.c_id
-    WHERE f.f_id = ?`;
+    JOIN Session s ON ac.s_id = s.s_id
+    WHERE f.f_id = ? AND s.flag = 'active'`;
+
   pool.query(getAssignedCoursesQuery, [userId], (error, results) => {
     if (error) {
       console.error("Error getting assigned courses:", error);
-      return res.status(500).json({ error: "Get Request Error" });
+      return res.status(500).json({ error: "Internal Server Error" });
     }
     if (results.length === 0) {
-      return res.status(404).json({ error: "Data not found for the given ID" });
+      return res.status(404).json({ error: "No assigned courses found for the given ID in the active session" });
     }
     res.json(results);
   });
@@ -37,11 +40,13 @@ AssignedCoursesRouter.get("/getAssignedTo/:c_id", (req, res) => {
   }
   // SQL query to retrieve faculty assigned to a course by ID
   const getAssignedToQuery = `
-    SELECT ac.*, f.f_name, f.f_id,c.c_title , c.c_code
+    
+ SELECT ac.*, f.f_name, f.f_id,c.c_title , c.c_code
     FROM faculty f
     JOIN Assigned_Course ac ON f.f_id = ac.f_id
+      JOIN session s ON s.s_id=ac.s_id
     JOIN course c ON ac.c_id = c.c_id
-    WHERE c.c_id = ?`;
+    WHERE c.c_id = ? AND s.flag='active';`;
   pool.query(getAssignedToQuery, [courseId], (error, results) => {
     if (error) {
       console.error("Error getting assigned faculty:", error);
@@ -62,7 +67,14 @@ AssignedCoursesRouter.get("/getUnAssignedCourses/:f_id", async (req, res) => {
       return res.status(400).json({ error: "Invalid faculty ID" });
     }
     const getUnAssignedCoursesQuery =
-      "SELECT c.* FROM course c LEFT JOIN assigned_course ac ON c.c_id = ac.c_id AND ac.f_id = ? WHERE ac.ac_id IS NULL;";
+      `SELECT distinct c.*
+FROM course c
+WHERE c.c_id NOT IN (
+    SELECT ac.c_id
+    FROM assigned_course ac
+    JOIN session s ON s.s_id=ac.s_id
+    WHERE ac.f_id = ? AND flag='active'
+);`;
     pool.query(getUnAssignedCoursesQuery, [userId], (err, result) => {
       if (err) {
         console.error(err);
@@ -121,18 +133,35 @@ AssignedCoursesRouter.post("/assignCourse/:c_id/:f_id", (req, res) => {
   if (!/^\d+$/.test(f_id)) {
     return res.status(400).json({ error: "Invalid faculty ID" });
   }
+
   const role = "junior";
-  const session = 1;
-  const query =
-    "INSERT INTO Assigned_Course (c_id, f_id, role, s_id) VALUES (?, ?, ?, ?)";
-  const values = [c_id, f_id, role, session];
-  pool.query(query, values, (err) => {
+
+  // Query to get the active session s_id
+  const getSessionQuery = "SELECT s_id FROM Session WHERE flag = 'active' LIMIT 1";
+
+  pool.query(getSessionQuery, (err, sessionResults) => {
     if (err) {
-      console.error("Error executing the query:", err);
-      res.status(500).json({ error: "Internal Server Error" });
-      return;
+      console.error("Error executing the query to get active session:", err);
+      return res.status(500).json({ error: "Internal Server Error" });
     }
-    res.status(200).json({ message: "Course assigned successfully" });
+
+    if (sessionResults.length === 0) {
+      return res.status(404).json({ error: "No active session found" });
+    }
+
+    const sessionId = sessionResults[0].s_id;
+
+    // Insert query to assign the course
+    const assignCourseQuery = "INSERT INTO Assigned_Course (c_id, f_id, role, s_id) VALUES (?, ?, ?, ?)";
+    const values = [c_id, f_id, role, sessionId];
+
+    pool.query(assignCourseQuery, values, (err) => {
+      if (err) {
+        console.error("Error executing the query to assign course:", err);
+        return res.status(500).json({ error: "Internal Server Error" });
+      }
+      res.status(200).json({ message: "Course assigned successfully" });
+    });
   });
 });
 
@@ -200,7 +229,7 @@ AssignedCoursesRouter.get("/getAssignedCoursesOfSessionAndYear", (req, res) => {
   // Assuming term is not needed here, adjust the SQL query accordingly if it's needed
 
   const query = `
-    SELECT DISTINCT c.c_title, c.c_id ,c.c_code 
+    SELECT DISTINCT c.c_title, c.c_id ,c.c_code,ac.s_id 
     FROM course c
     JOIN assigned_course ac ON ac.c_id = c.c_id
     JOIN session s ON s.s_id = ac.s_id
@@ -243,6 +272,29 @@ AssignedCoursesRouter.get("/SearchAssignedCoursesOfSessionAndYear/", (req, res) 
       return res.status(500).json({ error: 'Internal Server Error' });
     }
     res.status(200).json(results);
+  });
+});
+
+AssignedCoursesRouter.get("/getAssignedCoursesToFacultyInSpecificSessionAndYear/:c_id", (req, res) => {
+  const c_id = req.params.c_id;
+  const { session, year ,s_id} = req.query;
+  const query = `
+      SELECT f.f_name FROM faculty f
+  JOIN assigned_course ac ON ac.f_id=f.f_id
+  JOIN course c ON c.c_id=ac.c_id 
+  JOIN session s ON s.s_id=ac.s_id
+  WHERE s.s_name=? AND s.year=? AND ac.s_id=? AND ac.c_id=?;
+  `;
+
+  pool.query(query, [session, year,s_id,c_id], (error, results) => {
+    if (error) {
+      console.error("Error fetching Faculty names assigned to course:", error);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ error: "No Name found" });
+    }
+    res.json(results);
   });
 });
 
