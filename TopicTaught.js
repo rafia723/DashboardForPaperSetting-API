@@ -73,22 +73,20 @@ TopicTaughtRouter.get("/getTopicTaught/:f_id", async (req, res) => {
 TopicTaughtRouter.get("/getcommonSubTopictaught/:c_id", (req, res) => {
   const courseId = req.params.c_id;
   const query =
-  `        SELECT
+  `       SELECT
   st.st_id,
   st.st_name,
-  ac.c_id,
+  t.c_id,
   COUNT(DISTINCT tt.f_id) AS num_faculty
 FROM
   TopicTaught tt
-JOIN
-  subTopic st ON tt.st_id = st.st_id
-JOIN
-  Assigned_Course ac ON tt.f_id = ac.f_id
-JOIN 
-  session s ON s.s_id = tt.s_id
+  JOIN subTopic st ON tt.st_id = st.st_id
+  JOIN topic t ON st.t_id = t.t_id
+  JOIN Assigned_Course ac ON tt.f_id = ac.f_id
+  JOIN session s ON s.s_id = tt.s_id
 WHERE
-  ac.c_id = ?
-  AND s.flag = 'active'
+  s.flag = 'active'
+  AND t.c_id = ?
   AND ac.c_id IN (
     SELECT acc.c_id 
     FROM Assigned_Course acc
@@ -98,17 +96,18 @@ WHERE
     HAVING COUNT(DISTINCT acc.f_id) > 1
   )
 GROUP BY
-  st.st_id, st.st_name, ac.c_id
+  st.st_id, st.st_name, t.c_id
 HAVING
   COUNT(DISTINCT tt.f_id) = (
     SELECT COUNT(DISTINCT ac_inner.f_id)
     FROM Assigned_Course ac_inner
     JOIN session s_inner ON s_inner.s_id = ac_inner.s_id
-    WHERE ac_inner.c_id = ac.c_id
+    WHERE ac_inner.c_id = t.c_id
       AND s_inner.flag = 'active'
   )
 ORDER BY
-  st.st_id, ac.c_id;
+  st.st_id, t.c_id;
+  
   
    `;
   pool.query(query, [courseId],(err, results) => {
@@ -126,19 +125,19 @@ TopicTaughtRouter.get("/getcommonTopictaught/:c_id", (req, res) => {
   const courseId = req.params.c_id;
   const query =
   `        
-  SELECT
+    SELECT
   t.t_id,
   t.t_name,
-  ac.c_id,
+  t.c_id,
   COUNT(DISTINCT tt.f_id) AS num_faculty
 FROM
   TopicTaught tt
-  JOIN Topic t ON tt.t_id = t.t_id
+  JOIN topic t ON tt.t_id = t.t_id
   JOIN Assigned_Course ac ON tt.f_id = ac.f_id
   JOIN session s ON s.s_id = tt.s_id
 WHERE
   s.flag = 'active'
-  AND ac.c_id = ?
+  AND t.c_id = ?
   AND ac.c_id IN (
     SELECT acc.c_id 
     FROM Assigned_Course acc
@@ -148,17 +147,17 @@ WHERE
     HAVING COUNT(DISTINCT acc.f_id) > 1
   )
 GROUP BY
-  t.t_id, t.t_name, ac.c_id
+  t.t_id, t.t_name, t.c_id
 HAVING
   COUNT(DISTINCT tt.f_id) = (
     SELECT COUNT(DISTINCT ac_inner.f_id)
     FROM Assigned_Course ac_inner
     JOIN session s_inner ON s_inner.s_id = ac_inner.s_id
-    WHERE ac_inner.c_id = ac.c_id
+    WHERE ac_inner.c_id = t.c_id
       AND s_inner.flag = 'active'
   )
 ORDER BY
-  t.t_id, ac.c_id;
+  t.t_id, t.c_id;
    `;
   pool.query(query, [courseId],(err, results) => {
     if (err) {

@@ -6,9 +6,6 @@ const path = require('path');
 
 const questionRouter = express.Router();
 
-
-
-// Define storage for uploaded images
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, 'Images'); // Specify the destination folder
@@ -18,8 +15,22 @@ const storage = multer.diskStorage({
     }
 });
 
-// Initialize multer upload middleware
-const upload = multer({ storage: storage }).single('q_image');
+// Initialize multer upload middleware to handle multiple files
+const uploads = multer({ storage: storage }).array('q_images', 10); // 'q_images' is the field name, 10 is the max number of files
+
+
+// // Define storage for uploaded images
+// const storage = multer.diskStorage({
+//     destination: function (req, file, cb) {
+//         cb(null, 'Images'); // Specify the destination folder
+//     },
+//     filename: function (req, file, cb) {
+//         cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+//     }
+// });
+
+// // Initialize multer upload middleware
+ const upload = multer({ storage: storage }).single('q_image');
 
 questionRouter.post("/addQuestion", upload, (req, res) => {
     let q_imageUrl = null;
@@ -71,6 +82,92 @@ questionRouter.post("/addQuestion", upload, (req, res) => {
     });
 });
 });
+
+questionRouter.post("/addQuestionWithMultipleImages", uploads, (req, res) => {
+    let q_imageUrls = []; // Array to store the URLs of the uploaded images
+
+    if (req.files && req.files.length > 0) {
+        req.files.forEach(file => {
+            const imagePath = 'Images/' + file.filename;
+            q_imageUrls.push(imagePath);
+        });
+    }
+
+    const { q_text, q_marks, q_difficulty, q_status, p_id, f_id, c_id, s_id } = req.body;
+
+    const similarityCheckQuery = `
+        SELECT q.q_id, q.q_text, sq.sq_id, sq.sq_text
+        FROM question q 
+        JOIN paper p ON q.p_id = p.p_id 
+        LEFT JOIN subquestion sq ON sq.q_id = q.q_id 
+        WHERE (q.q_text LIKE ? OR sq.sq_text LIKE ?)
+        AND p.c_id = ?
+        LIMIT 1
+    `;
+
+    pool.query(similarityCheckQuery, [`%${q_text}%`,`%${q_text}%`, c_id], (similarityErr, similarityResult) => {
+        if (similarityErr) {
+            console.error("Error checking for similar questions:", similarityErr);
+            return res.status(500).json({ error: "Error checking for similar questions" });
+        }
+
+        if (similarityResult.length > 0) {
+            if (q_imageUrls.length > 0) {
+                q_imageUrls.forEach(url => {
+                    fs.unlinkSync(url);
+                });
+            }
+            // Similar question found
+            return res.status(409).json({ message: "Similar question already exists", similarQuestion: similarityResult[0] });
+        }
+
+        const insertQuestionQuery = "INSERT INTO Question (q_text, q_marks, q_difficulty, q_status, p_id, f_id) VALUES (?, ?, ?, ?, ?, ?)";
+        
+        pool.query(insertQuestionQuery, [q_text, q_marks, q_difficulty, q_status, p_id, f_id], (err, result) => {
+            if (err) {
+                console.error("Error inserting question data:", err);
+                // If there's an error, delete the uploaded files
+                if (q_imageUrls.length > 0) {
+                    q_imageUrls.forEach(url => {
+                        fs.unlinkSync(url);
+                    });
+                }
+                return res.status(500).json({ error: "Post Request Error" });
+            }
+
+            // Get the newly inserted q_id
+            const insertedQId = result.insertId;
+
+            // Insert image URLs into the QuestionImage table
+            if (q_imageUrls.length > 0) {
+                const insertImageQuery = "INSERT INTO QuestionImage (q_id, image_url) VALUES ?";
+                const imageValues = q_imageUrls.map(url => [insertedQId, url]);
+
+                pool.query(insertImageQuery, [imageValues], (imageErr, imageResult) => {
+                    if (imageErr) {
+                        console.error("Error inserting image data:", imageErr);
+                        // If there's an error, delete the uploaded files and the question
+                        if (q_imageUrls.length > 0) {
+                            q_imageUrls.forEach(url => {
+                                fs.unlinkSync(url);
+                            });
+                        }
+                        pool.query("DELETE FROM Question WHERE q_id = ?", [insertedQId], () => {
+                            return res.status(500).json({ error: "Post Request Error" });
+                        });
+                    } else {
+                        res.status(200).json({ message: "Question and images inserted successfully", q_id: insertedQId });
+                    }
+                });
+            } else {
+                res.status(200).json({ message: "Question inserted successfully", q_id: insertedQId });
+            }
+        });
+    });
+});
+
+
+
 const getBaseUrl = (req) => {
     return req.protocol + '://' + req.get('host') + '/';
 };
@@ -101,9 +198,63 @@ questionRouter.get("/getQuestion/:p_id", (req, res) => {
 });
 
 
+questionRouter.get("/getQuestionWithMultipleImages/:p_id", (req, res) => {
+    const paperId = req.params.p_id;
+    const getQuery = `
+        SELECT q.q_id, q.q_text, q.q_marks, q.q_difficulty, q.q_status, q.p_id, q.f_id,
+               qi.image_url
+        FROM Question q
+        LEFT JOIN QuestionImage qi ON q.q_id = qi.q_id
+        WHERE q.p_id = ?
+    `;
+    
+    pool.query(getQuery, [paperId], (err, results) => {
+        if (err) {
+            console.error("Error retrieving questions:", err);
+            return res.status(500).send("Get Request Error");
+        }
+        if (results.length === 0) {
+            return res.status(404).json({ error: "Data not found for the given ID" });
+        }
+
+        const baseUrl = getBaseUrl(req);
+
+        // Group images by question ID
+        const questionsMap = {};
+        results.forEach(row => {
+            if (!questionsMap[row.q_id]) {
+                questionsMap[row.q_id] = {
+                    q_id: row.q_id,
+                    q_text: row.q_text,
+                    q_marks: row.q_marks,
+                    q_difficulty: row.q_difficulty,
+                    q_status: row.q_status,
+                    p_id: row.p_id,
+                    f_id: row.f_id,
+                    q_images: []
+                };
+            }
+            if (row.image_url) {
+                questionsMap[row.q_id].q_images.push(baseUrl + row.image_url);
+            }
+        });
+
+        // Convert the map back to an array
+        const questionsWithImages = Object.values(questionsMap);
+
+        res.json(questionsWithImages);
+    });
+});
+
 questionRouter.get("/getQuestionbyQID/:q_id", (req, res) => {
     const q_id = req.params.q_id;
-    const getQuery = "SELECT * FROM Question WHERE q_id=?";
+    const getQuery = `
+        SELECT q.q_id, q.q_text, q.q_marks, q.q_difficulty, q.q_status, q.p_id, q.f_id,
+               qi.image_url
+        FROM Question q
+        LEFT JOIN QuestionImage qi ON q.q_id = qi.q_id
+        WHERE q.q_id = ?
+    `;
     
     pool.query(getQuery, [q_id], (err, results) => {
         if (err) {
@@ -123,6 +274,54 @@ questionRouter.get("/getQuestionbyQID/:q_id", (req, res) => {
         });
 
         res.json(questionsWithFullImageUrl);
+    });
+});
+
+questionRouter.get("/getQuestionByQIDWithMultipleImages/:q_id", (req, res) => {
+    const qId = req.params.q_id;
+    const getQuery = `
+        SELECT q.q_id, q.q_text, q.q_marks, q.q_difficulty, q.q_status, q.p_id, q.f_id,
+               qi.image_url
+        FROM Question q
+        LEFT JOIN QuestionImage qi ON q.q_id = qi.q_id
+        WHERE q.q_id = ?
+    `;
+    
+    pool.query(getQuery, [qId], (err, results) => {
+        if (err) {
+            console.error("Error retrieving questions:", err);
+            return res.status(500).send("Get Request Error");
+        }
+        if (results.length === 0) {
+            return res.status(404).json({ error: "Data not found for the given ID" });
+        }
+
+        const baseUrl = getBaseUrl(req);
+
+        // Group images by question ID
+        const questionsMap = {};
+        results.forEach(row => {
+            if (!questionsMap[row.q_id]) {
+                questionsMap[row.q_id] = {
+                    q_id: row.q_id,
+                    q_text: row.q_text,
+                    q_marks: row.q_marks,
+                    q_difficulty: row.q_difficulty,
+                    q_status: row.q_status,
+                    p_id: row.p_id,
+                    f_id: row.f_id,
+                    q_images: []
+                };
+            }
+            if (row.image_url) {
+                questionsMap[row.q_id].q_images.push(baseUrl + row.image_url);
+            }
+        });
+
+        // Convert the map back to an array
+        const questionsWithImages = Object.values(questionsMap);
+
+        res.json(questionsWithImages);
     });
 });
 
@@ -297,40 +496,6 @@ FROM question q
 });
 });
 
-
-
-// questionRouter.get("/getQuestion/:p_id", (req, res) => {
-//     const paperId = req.params.p_id;
-//     const getQuery = "SELECT * FROM Question WHERE p_id=?";
-    
-//     pool.query(getQuery, [paperId], (err, results) => {
-//         if (err) {
-//             console.error("Error retrieving questions:", err);
-//             return res.status(500).send("Get Request Error");
-//         }
-//         if (results.length === 0) {
-//             return res.status(404).json({ error: "Data not found for the given ID" });
-//         }
-
-//         // Create new objects with the desired properties
-//         const processedResults = results.map(question => {
-//             const processedQuestion = {
-//                 q_id: question.q_id,
-//                 q_text: question.q_text,
-//                 q_image: question.q_image,
-//                 q_marks: question.q_marks,
-//                 q_difficulty: question.q_difficulty,
-//                 q_status: question.q_status,
-//                 t_id: question.t_id,
-//                 p_id: question.p_id,
-//                 f_id: question.f_id
-//             };
-//             return processedQuestion;
-//         });
-
-//         res.json(processedResults);
-//     });
-// });
 
 
 questionRouter.get("/getQuestionsWithUploadedOrApprovedStatus/:p_id", (req, res) => {
