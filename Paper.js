@@ -176,7 +176,7 @@ LEFT JOIN (
     JOIN Session s ON p1.s_id = s.s_id
     WHERE s.flag = 'active'
 ) p ON c.c_id = p.c_id
-WHERE COALESCE(p.status, 'No Header') NOT IN ('uploaded', 'printed')
+WHERE COALESCE(p.status, 'No Header') NOT IN ('uploaded', 'printed','approved')
    OR COALESCE(p.status, 'No Header') = 'pending';
   `;
 
@@ -245,21 +245,23 @@ paperRouter.get('/getTeachersNamebyCourseId/:c_id', async (req, res) => {
   paperRouter.get('/getPaperStatusOfCoursesAssignedToFaculty/:f_id', async (req, res) => {
   
     const  fid  = req.params.f_id;
-    const query =  ` SELECT 
+    const query =  `     SELECT 
   c.c_title, 
-  p.status 
+  CASE 
+    WHEN p.status IS NOT NULL THEN p.status
+    ELSE 'pending'
+  END AS status
 FROM 
   course c 
 JOIN 
   assigned_course ac ON c.c_id = ac.c_id 
-JOIN 
-  paper p ON p.c_id = c.c_id
+LEFT JOIN 
+  paper p ON p.c_id = c.c_id AND p.s_id = ac.s_id
 JOIN 
   session s ON s.s_id = ac.s_id
 WHERE 
-  ac.f_id = ? 
-  AND s.flag = 'active'
-  AND p.s_id = s.s_id;` 
+  ac.f_id = ?
+  AND s.flag = 'active';` 
     
       pool.query(query , [fid],(err, result) => {
         if (err) {

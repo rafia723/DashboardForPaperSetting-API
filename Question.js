@@ -249,11 +249,7 @@ questionRouter.get("/getQuestionWithMultipleImages/:p_id", (req, res) => {
 questionRouter.get("/getQuestionbyQID/:q_id", (req, res) => {
     const q_id = req.params.q_id;
     const getQuery = `
-        SELECT q.q_id, q.q_text, q.q_marks, q.q_difficulty, q.q_status, q.p_id, q.f_id,
-               qi.image_url
-        FROM Question q
-        LEFT JOIN QuestionImage qi ON q.q_id = qi.q_id
-        WHERE q.q_id = ?
+        SELECT * FROM Question WHERE q_id=?
     `;
     
     pool.query(getQuery, [q_id], (err, results) => {
