@@ -174,7 +174,11 @@ const getBaseUrl = (req) => {
 
 questionRouter.get("/getQuestion/:p_id", (req, res) => {
     const paperId = req.params.p_id;
-    const getQuery = "SELECT * FROM Question WHERE p_id=?";
+    const getQuery = 	`SELECT q.*, GROUP_CONCAT(DISTINCT clo.clo_number)
+    AS mapped_clos FROM Question q LEFT JOIN QuestionTopic qt
+    ON q.q_id = qt.q_id LEFT JOIN clo_topic_mapping tc ON
+    qt.t_id = tc.t_id LEFT JOIN CLO clo ON tc.clo_id = clo.clo_id
+    WHERE q.p_id = ? GROUP BY q.q_id;`;
     
     pool.query(getQuery, [paperId], (err, results) => {
         if (err) {
@@ -360,7 +364,7 @@ questionRouter.put("/editQuestionStatusFromPendingToUploaded/:q_id", (req, res) 
       return res.status(400).json({ error: "New status not provided" });
     }
   
-    const validStatuses = ['approved', 'rejected', 'uploaded'];
+    const validStatuses = ['approved', 'pending', 'uploaded'];
     if (!validStatuses.includes(newStatus)) {
       return res.status(400).json({ error: "Invalid status" });
     }
@@ -493,10 +497,97 @@ FROM question q
 });
 
 
+// GET endpoint
+questionRouter.get("/getadditionalquestion/:p_id", (req, res) => {
+    const paperId = req.params.p_id;
+    const cloFilters = req.query.clos ? req.query.clos.split(",") : [];
+    const difficulty = req.query.difficulty; // Get difficulty from query parameters
+  
+    // Example CLO count based on filters
+    const cloCount = cloFilters.length;
+  
+    // Dynamic SQL query using placeholders
+    let query = `
+        SELECT q.*, GROUP_CONCAT(DISTINCT clo.clo_number) AS mapped_clos
+        FROM Question q
+        LEFT JOIN QuestionTopic qt ON q.q_id = qt.q_id
+        LEFT JOIN clo_topic_mapping tc ON qt.t_id = tc.t_id
+        LEFT JOIN CLO clo ON tc.clo_id = clo.clo_id
+        WHERE q.p_id = ? AND q.q_status = 'pending'
+    `;
+  
+    // Parameters for the SQL query
+    const params = [paperId];
+  
+    // Add difficulty to query and parameters if provided
+    if (difficulty) {
+      query += " AND q.q_difficulty = ?";
+      params.push(difficulty);
+    }
+  
+    // Add CLO filters to query and parameters if provided
+    if (cloFilters.length > 0) {
+      query += " AND clo.clo_number IN (" + cloFilters.map(() => '?').join(',') + ")";
+      params.push(...cloFilters);
+    }
+  
+    query += `
+        GROUP BY q.q_id
+        HAVING COUNT(DISTINCT clo.clo_number) = ?
+      `;
+  
+    // Add cloCount to params
+    params.push(cloCount);
+  
+    pool.query(query, params, (err, results) => {
+      if (err) {
+        console.error("Error executing the query:", err);
+        res.status(500).json({ error: "Internal Server Error" });
+        return;
+      }
+  
+      const baseUrl = getBaseUrl(req);
+      const questionsWithFullImageUrl = results.map(question => {
+          if (question.q_image) {
+              question.q_image = baseUrl + question.q_image;
+          }
+          return question;
+      });
+
+      res.json(questionsWithFullImageUrl);
+    });
+});
+
+
+
+questionRouter.get("/getQuestionCLOS/:q_id", (req, res) => {
+    const q_id = req.params.q_id;
+    const getQuery = `
+      SELECT distinct clo.clo_number
+      FROM Question
+      JOIN QuestionTopic ON Question.q_id = QuestionTopic.q_id
+      JOIN Topic ON QuestionTopic.t_id = Topic.t_id
+      JOIN clo_topic_mapping ON Topic.t_id = clo_topic_mapping.t_id
+      JOIN Clo ON clo_topic_mapping.clo_id = Clo.clo_id
+      WHERE Question.q_id = ?;
+    `;
+    pool.query(getQuery, [q_id], (err, result) => {
+        if (err) {
+            console.error("Error retrieving", err);
+            res.status(500).send("Get Request Error");
+            return;
+        }
+        res.json(result);
+    });
+});
 
 questionRouter.get("/getQuestionsWithUploadedOrApprovedStatus/:p_id", (req, res) => {
     const paperId = req.params.p_id;
-    const getQuery = "SELECT * FROM Question WHERE p_id=? AND (q_status='uploaded' OR q_status='approved');";
+    const getQuery = `SELECT q.*, GROUP_CONCAT(DISTINCT clo.clo_number)
+    AS mapped_clos FROM Question q LEFT JOIN QuestionTopic qt
+    ON q.q_id = qt.q_id LEFT JOIN clo_topic_mapping tc ON
+    qt.t_id = tc.t_id LEFT JOIN CLO clo ON tc.clo_id = clo.clo_id
+    WHERE q.p_id = ? AND (q_status='uploaded' OR q_status='approved') GROUP BY q.q_id `;
     
     pool.query(getQuery, [paperId], (err, results) => {
         if (err) {

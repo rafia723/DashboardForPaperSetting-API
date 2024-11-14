@@ -30,7 +30,7 @@ feedbackRouter.get("/getFeedback", (req, res) => {
 
   feedbackRouter.get("/getFeedbackOfPaperHeaderOnlySenior/:f_id", (req, res) => {  
     const f_id = req.params.f_id; // Extract c_id from request parameters
-    const getQuery = `        SELECT f.*, c.*
+    const getQuery = `        SELECT distinct f.*, c.*
 FROM feedback f
 JOIN paper p ON f.p_id = p.p_id 
 JOIN assigned_course ac ON p.c_id = ac.c_id 
@@ -58,9 +58,41 @@ WHERE ac.f_id = ?
     });
   });
 
+
+  feedbackRouter.get("/getFeedbackOfPaperOnlySenior/:f_id", (req, res) => {  
+    const f_id = req.params.f_id; // Extract c_id from request parameters
+    const getQuery = `        SELECT distinct f.*, c.*
+FROM feedback f
+JOIN paper p ON f.p_id = p.p_id 
+JOIN assigned_course ac ON p.c_id = ac.c_id 
+JOIN course c ON c.c_id = p.c_id
+JOIN session s ON s.s_id = p.s_id
+WHERE ac.f_id = ?
+  AND ac.role = 'senior' 
+  AND f.q_id IS NULL
+  AND p.status = 'ForwardedBack'
+  AND s.flag = 'active'
+  AND f.f_submitted = (
+    SELECT MAX(f_submitted)
+    FROM feedback fb
+    WHERE fb.p_id = f.p_id
+  );
+  `
+  ;
+    pool.query(getQuery,[f_id] ,(err, result) => {
+      if (err) {
+        console.error("Error retrieving :", err);
+        res.status(500).send("Get Request Error");
+        return;
+      }
+      res.json(result);
+    });
+  });
+
+
   feedbackRouter.get("/getFeedbackofQuestionSpecificTeacher/:f_id", (req, res) => {  
     const f_id = req.params.f_id; // Extract c_id from request parameters //query is fetching the latest feedback of same qid and pid
-    const getQuery = `SELECT f.*, c.*    
+    const getQuery = `SELECT distinct f.*, c.*    
 FROM feedback f
 JOIN (
     SELECT fb.q_id, fb.p_id, MAX(f_submitted) AS max_f_submitted

@@ -37,8 +37,8 @@ gridviewWeightageRouter.get("/getCloWeightageofSpecificCourseAndHeaderName/:c_id
   const c_id = req.params.c_id;
   const name = req.params.name;
   const getQuery =
-  ` SELECT gvwt.*, clo.c_id,SUBSTRING(clo.clo_number, 5) AS clonumber FROM Course JOIN clo ON Course.c_id = CLO.c_id JOIN Grid_View_Weightage gvwt 
-  ON CLO.clo_id = gvwt.clo_id join grid_view_headers gwh ON gvwt.header_id=gwh.header_id WHERE 
+  `    SELECT gvwt.*, clo.c_id,SUBSTRING(clo.clo_number, 5) AS clonumber FROM Course JOIN clo ON Course.c_id = CLO.c_id JOIN Grid_View_Weightage gvwt 
+  ON CLO.clo_id = gvwt.clo_id join grid_view_headers gwh ON gvwt.header_id=gwh.header_id WHERE gvwt.weightage>0 and
  Course.c_id =? AND gwh.name=? ;    ` ;
  const inserts=[c_id,name];
   pool.query(getQuery, inserts, (err, results) => {

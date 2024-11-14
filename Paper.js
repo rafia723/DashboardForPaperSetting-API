@@ -612,7 +612,6 @@ WHERE
     });
 });
 
-
 paperRouter.put("/editPaperStatusToUploaded/:p_id", (req, res) => {    
   const pId = req.params.p_id;
 
@@ -625,6 +624,65 @@ paperRouter.put("/editPaperStatusToUploaded/:p_id", (req, res) => {
         WHERE q.p_id = p.p_id
           AND q.q_status = 'uploaded'
     );`;
+
+  pool.query(updateQuery, [pId], (err) => { 
+      if (err) {
+          console.error("Error updating paper status:", err); 
+          return res.status(500).json({ error: "update Request Error" });
+      }
+      res.status(200).json({ message: "Paper status updated successfully" });
+  });
+});
+
+
+
+paperRouter.put("/editPaperStatusToApproved/:p_id", (req, res) => {    
+  const pId = req.params.p_id;
+
+  const updateQuery = ` UPDATE paper p
+  SET p.status = 'approved'
+  WHERE p.p_id = ?
+    AND p.NoOfQuestions = (
+        SELECT COUNT(*)
+        FROM question q
+        WHERE q.p_id = p.p_id
+          AND q.q_status = 'approved'
+    );`;
+
+  pool.query(updateQuery, [pId], (err) => { 
+      if (err) {
+          console.error("Error updating paper status:", err); 
+          return res.status(500).json({ error: "update Request Error" });
+      }
+      res.status(200).json({ message: "Paper status updated successfully" });
+  });
+});
+
+
+paperRouter.put("/editPaperStatusToPending/:p_id", (req, res) => {    
+  const pId = req.params.p_id;
+
+  const updateQuery = `   UPDATE paper p 
+  SET p.status = 'pending'
+  WHERE p.p_id = ? 
+    `;
+
+  pool.query(updateQuery, [pId], (err) => { 
+      if (err) {
+          console.error("Error updating paper status:", err); 
+          return res.status(500).json({ error: "update Request Error" });
+      }
+      res.status(200).json({ message: "Paper status updated successfully" });
+  });
+});
+
+paperRouter.put("/editPaperStatusToRejected/:p_id", (req, res) => {    
+  const pId = req.params.p_id;
+
+  const updateQuery = `   UPDATE paper p 
+  SET p.status = 'Rejected'
+  WHERE p.p_id = ? 
+    `;
 
   pool.query(updateQuery, [pId], (err) => { 
       if (err) {
